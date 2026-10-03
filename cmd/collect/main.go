@@ -36,6 +36,9 @@ func run() error {
 	interval := f.Duration("interval", 1100*time.Millisecond, "minimum interval between requests")
 	retries := f.Int("retries", 4, "maximum additional attempts (0..8)")
 	if err := f.Parse(os.Args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		return err
 	}
 	if f.NArg() > 0 {

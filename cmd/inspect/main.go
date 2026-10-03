@@ -27,6 +27,9 @@ func run() error {
 	source := f.String("source", "rakuten", "source for -state")
 	export := f.Bool("export", false, "write all eligible Jev states as JSONL to stdout")
 	if err := f.Parse(os.Args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		return err
 	}
 	if f.NArg() > 0 || o.Sample < 0 {
