@@ -14,6 +14,21 @@ cd jev-money-engine
 go mod download
 ```
 
+Windows用 `collect.exe` / `inspect.exe` を受け取った場合は、同じオプションで直接実行できます。実行時のGoインストールは不要です。
+
+```powershell
+.\collect.exe -keyword "空気清浄機" -pages 34 -sample 20
+.\inspect.exe -sample 20
+.\inspect.exe -state "shop:123456"
+```
+
+ソースからWindows用バイナリを作る場合:
+
+```powershell
+go build -o collect.exe ./cmd/collect
+go build -o inspect.exe ./cmd/inspect
+```
+
 `.env.example` を `.env` にコピーし、ローカルで設定してください。
 
 ```dotenv
