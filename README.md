@@ -9,10 +9,12 @@
 - SQLiteはpure Goドライバ `modernc.org/sqlite` を使用。Python、Cコンパイラ、SQLiteの別途インストールは不要
 
 ```sh
-git clone https://github.com/AkiraShimizu0/rakuten-product-search.git jev-money-engine
+git clone --branch day1-collector https://github.com/AkiraShimizu0/rakuten-product-search.git jev-money-engine
 cd jev-money-engine
 go mod download
 ```
+
+Day 1のコードは現在 `day1-collector` ブランチのdraft PRにあります。mainへマージ後は `--branch day1-collector` を省略できます。
 
 Windows用 `collect.exe` / `inspect.exe` を受け取った場合は、同じオプションで直接実行できます。実行時のGoインストールは不要です。
 
