@@ -1,6 +1,6 @@
 # jev-money-engine
 
-個人向けの商品候補収集システム。Day 1では楽天市場の商品を取得し、共通モデルに正規化してSQLiteに保存、Goの一次フィルタで候補を選別します。翌日にJevへ渡すJSON stateを生成できます。Jev/LLM API、Web UI、記事・SNS生成は実装していません。
+個人向けの商品候補収集・選別システム。Day 1は楽天の商品取得・SQLite保存・一次フィルタ、Day 2は既存候補のJev評価・ランキング・人間レビュー用CSVです。Web UI、記事・SNS生成、他のLLM呼び出しはありません。
 
 ## 必要な環境とセットアップ
 
@@ -67,7 +67,7 @@ go run ./cmd/collect -keyword "空気清浄機" -pages 34 -sort=-reviewCount -in
 
 ## DB・モデルと一次フィルタ
 
-DBはプロジェクトルートからの相対パス `data/money.db`。`-db` で変更可能。初回に自動作成し、`PRAGMA user_version=1` の簡易スキーマ管理を使用します。`data/` 全体はGitから除外されます。
+DBはプロジェクトルートからの相対パス `data/money.db`。`-db` で変更可能。Day 2では `PRAGMA user_version=2` に自動移行し、既存productsを保持して評価テーブルを追加します。`data/` 全体はGitから除外されます。
 
 `products` テーブルの `(source, source_id)` が主キー。再取得は更新となり、`first_seen_at` は保持、`last_seen_at` は更新します。日時はUTC。同一実行内の重複は最初の出現のみ処理。保存はページごとのトランザクションです。除外商品も保存するので再取得なしでフィルタを変更できます。元の個別商品レスポンスを `raw_json` に保持し、未知フィールドも残します。
 
@@ -150,7 +150,9 @@ internal/product/ データソース非依存Product
 internal/rakuten/ HTTP clientと楽天専用正規化
 internal/store/   SQLite保存
 internal/filter/  決定的な一次フィルタ
-internal/jev/     Jev state変換のみ
+internal/jev/     Jev state・質問・HTTP・応答検証・スコア
+internal/evaluate/ 評価実行・ランキング・人間レビューCSV
+cmd/evaluate/    Day 2評価CLI
 internal/report/  集計とサンプリング
 internal/config/  ローカル環境設定
 internal/cli/     共通フラグ
@@ -158,3 +160,72 @@ data/             実データ・DB（Git対象外）
 ```
 
 将来のcollectorは専用のレスポンス型と正規化を追加し、共通Productに変換してstore/filter/reportを再利用できます。Day 1では他ECサイトや汎用collector frameworkを追加しません。
+
+## Day 2: 固定候補のJev評価
+
+Day 1の「空気清浄機」eligible 395件を使います。evaluateは楽天APIを呼びません。Day 2ブランチを使う場合は `git switch day2-jev-evaluation`。このdraft PRのbaseは `day1-collector` です。
+
+### 公式APIと評価方法
+
+2026-10-04に確認した[公式API](https://docs.typesafe.ai/api)は `POST https://api.typesafe.ai/v1/systemone`、Bearer認証、`model/state/questions` です。[モデル仕様](https://docs.typesafe.ai/models)に合わせ `jev-1.13.0` を固定します。`jev-latest` は更新され得るため比較実験では固定モデルを推奨します。
+
+商品種別の5択と、6つの意味評価軸のyes/noを、独立した7つのChoice質問として送ります。各軸はyesの確率を使用し、provider confidenceを別に保存します。[Noulには独立したconfidenceがありません](https://docs.typesafe.ai/confidence)。そのため今回はChoiceを採用しました。Noul/Score応答の検証・変換もテストしますが既定質問はChoiceです。
+
+6軸は research_value / problem_specificity / comparison_value / longtail_potential / content_value / commodity_risk。longtailは検索需要の実測や予測ではなく、商品に根拠のある具体的な検討テーマの余地です。
+
+Goで `clamp(0.22*research + 0.18*problem + 0.20*comparison + 0.18*longtail + 0.22*content - 0.25*commodity + role補正, 0, 1)` を計算します。補正は本体+0.05、交換品0、付属品0、セット-0.01、不明-0.03。confidenceを機会スコアに混ぜません。重みは `-weights path.json`（`internal/jev/score.go` のScoreConfig形式）で変更できます。
+
+### 認証・実行
+
+ローカル `.env` の `JEV_API_KEY` に設定済みのキーを置いてください。`.env.example` の `JEV_BASE_URL` / `JEV_MODEL` は既定値です。秘密情報をGitに登録しないでください。`-env-file` で既存ファイルを選べます。キーがない場合はAPIを呼ばず、計画を表示して終了します。
+
+```powershell
+# APIを呼ばず計画・質問・sample state・入力サイズを確認
+ go run ./cmd/evaluate -dry-run
+# Stage A: 10件
+ go run ./cmd/evaluate -limit 10
+# Stage B: 追加100件（累計100件にする場合は -limit 90）
+ go run ./cmd/evaluate -limit 100
+# Stage C: 残りすべて
+ go run ./cmd/evaluate
+# 保存済みの上位20件だけ表示。API呼び出しなし
+ go run ./cmd/evaluate -top 20 -min-score 0
+# 保存済み評価からCSV出力。API呼び出しなし
+ go run ./cmd/evaluate -export-review
+# 同一設定・同一version内の明示的再評価
+ go run ./cmd/evaluate -limit 10 -force
+# 質問やモデルや重み等を変更した実験は新version
+ go run ./cmd/evaluate -version v2 -dry-run
+```
+
+`go build -o evaluate.exe ./cmd/evaluate` でWindows実行ファイルを作れます。配布バイナリは同じオプションです。DB移行前のバックアップを保持し、schema 2では新しいcollect/inspectも使用してください。旧Day 1バイナリは新schemaを開けません。
+
+### 再評価防止・状態・耐障害性
+
+主キーは `(source, source_id, evaluation_version)`。既存評価はskip、`-force` は同じ設定で更新します。モデル、質問、重み、一次フィルタ、state前処理、対象商品とstate hashをversionのfingerprintとして固定し、設定変更には新versionを要求します。単に同じversionに `-force` を付けても設定変更は許しません。dry-runは評価version・結果・runを登録しません（DB schema移行は行います）。
+
+Day 1のstate出力v1は維持し、評価専用state v2を別に作りました。商品名・説明をuntrusted dataとして質問から分離し、説明は既定3000 Unicode文字、名前300文字、shop120文字まで。隣接する同一文をまとめ、URLやraw JSONを送りません。DBの元の商品は変更しません。数値比較はGo、価格はAPI値を使い、商品名の割引価格を確定価格として扱いません。
+
+説明中の採点要求や宣伝を無視する質問を設定しています。ただし[公式のモデル制約](https://docs.typesafe.ai/model-jaggedness/jev-1.13)も踏まえ、プロンプト注入への完全な耐性や日本語の判定精度は保証せず、実際の人間レビューで確認します。
+
+HTTP既定timeout20秒、間隔250ms、追加retry3回、商品あたり最大2分。429/529、一時的5xx、timeout等に待機・backoff・Retry-Afterを使用。認証・schema・model等の致命的エラーは停止し、その他は商品単位で記録して続行します。成功結果は逐次保存します。壊れた成功応答は課金重複を避けて自動再送せず、再実行で未評価を再試行します。
+
+### usage・ランキング・人間レビュー
+
+dry-runの入力サイズはUTF-8/JSONのバイト数でありtoken数ではありません。実応答のinput/output tokensだけを記録し、欠損値はunknown。retryでusage不明の試行を別途数えます。既定モデルの推定入力料金は$0.042/百万token、output無料（上記モデル仕様）。`-input-usd-per-million` で変更できます。別モデルの既定料金はunknown。表示額は既知usage分の推定額で、実請求額ではありません。
+
+保存済み評価のcoverage、種別分布、scoreのmin/mean/median/p90/p95/p99/max、軸とconfidenceのmean/median、上位10/5/3/1%を集計します。割合は切り上げ、同点はsource/source_id順に固定件数を選びます。395件すべて評価済みなら40/20/12/4件です。
+
+40件以上評価済みでCSVを作成できます。Top20と、それを除いた評価済み母集団からRandom20を重複なしに選びます。途中段階のCSVはその評価済み部分集合の比較に留まります。`-review-seed 42` で再現可能です。
+
+- `data/day2-review.csv`: score/role/confidenceを含む通常CSV、human_good_candidate / human_score / human_notesは空欄。
+- `data/day2-review-blind.csv`: group/score/role/confidenceを隠し、順序を混ぜた商品情報とreview ID。まずこちらを人間が評価してください。
+- `data/day2-review-key.csv`: IDとgroupの対応表。人間評価終了まで開かずローカルで保持してください。
+
+UTF-8 BOMとCSV quotingに対応し、表計算ソフトの数式解釈を避けます。人間レビュー後にTop群とRandom群を比較するまで、濃縮性能が良いとは結論しません。
+
+### Day 2の検証状況
+
+`go test ./...` / `go vet ./...` が成功。HTTP mock、応答・confidence検証、score、schema 1→2、upsert/version/force、部分失敗からの再開、CSVの40件・重複なし・blind化を検証しました。
+
+実DBは1020商品・eligible395件。移行前後のproducts全列を双方向比較し差分0、評価テーブルは0件。dry-runで395件、平均state3837.54 bytes、最大9101 bytes、全request合計4556537 bytesを確認しました。Jev認証情報がローカルに存在しないため、ご依頼の例外に従って実API評価は未実施です。実ランキング、誤判定、confidence傾向、usage、実レビューCSVはまだありません。
