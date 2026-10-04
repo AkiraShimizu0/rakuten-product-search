@@ -5,3 +5,9 @@
 *.env
 *.exe
 /bin/
+*.db
+*.db-wal
+*.db-shm
+/outputs/
+day3-*.csv
+day3-judge-*.json

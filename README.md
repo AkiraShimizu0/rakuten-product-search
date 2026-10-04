@@ -1,6 +1,6 @@
 # jev-money-engine
 
-個人向けの商品候補収集・選別システム。Day 1は楽天の商品取得・SQLite保存・一次フィルタ、Day 2は既存候補のJev評価・ランキング・人間レビュー用CSVです。Web UI、記事・SNS生成、他のLLM呼び出しはありません。
+個人向けの商品候補収集・選別システム。Day 1は楽天の商品取得・SQLite保存・一次フィルタ、Day 2は既存候補のJev評価、Day 3は固定Jev GateとLLM reranker・blind AI reviewの比較実験です。Web UIや記事・SNS生成はありません。
 
 ## 必要な環境とセットアップ
 
@@ -229,3 +229,99 @@ UTF-8 BOMとCSV quotingに対応し、表計算ソフトの数式解釈を避け
 `go test ./...` / `go vet ./...` が成功。HTTP mock、応答・confidence検証、score、schema 1→2、upsert/version/force、部分失敗からの再開、CSVの40件・重複なし・blind化を検証しました。
 
 実DBは1020商品・eligible395件。移行前後のproducts全列を双方向比較し差分0、評価テーブルは0件。dry-runで395件、平均state3837.54 bytes、最大9101 bytes、全request合計4556537 bytesを確認しました。Jev認証情報がローカルに存在しないため、ご依頼の例外に従って実API評価は未実施です。実ランキング、誤判定、confidence傾向、usage、実レビューCSVはまだありません。
+# Day 3: recall gateとLLM reranker
+
+Day 3は追加調査候補の選別実験です。記事生成・公開・商品検索・Jev再評価は行いません。
+Jev v1のquestions、model、6軸、role、state、重み、一次フィルタは固定し、保存済みv1評価だけを使います。
+
+## Gateを先に固定
+
+Day2.6の120件だけで、AI平均4以上のpositive recallが95%以上となるthresholdの中から、最もreject件数が多いものを選びます。同じreject件数なら低いthresholdを採用します。
+
+```powershell
+go run ./cmd/gate -db data/money.db -calibration data/day2-6-analysis.csv -out data/day3
+```
+
+出力は `gate-v1.json`、全thresholdの `gate-thresholds.csv`、取りこぼしたpositiveの `gate-false-negatives.csv`。
+既存ファイルは上書きしません。実験済みのGateを再利用してください。LLM結果からthresholdを変更しません。
+rawはv1と同じ式のclamp前の値です。9桁CSVの丸め誤差を境界比較に限り5e-10まで許容します。
+校正データは層化・role調整済みの標本なので、校正上95%以上でも母集団Recallの保証にはなりません。
+
+## モデルと評価
+
+固定モデルは `claude-sonnet-5-5`、versionは `llm-reranker-claude-v1`。
+公式仕様上、日付なしIDも固定snapshotです。OpenAI版は実評価0件のまま、ユーザー指定によりClaude用の新versionへ切り替えました。
+[公式モデル仕様・料金](https://platform.claude.com/docs/en/models/sonnet-5-5/overview)と
+[Structured Outputs仕様](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)を2026-10-04に確認しています。
+Messages APIのJSON Schemaで6軸とoverallを取得し、0〜100整数制約はGo側でも検証します。
+adaptive thinking、effort=medium、max_tokens=4096。Web検索や他のツールは有効にしません。
+商品データは保存済みJev stateから転記し、追加のdescription加工は行いません。
+Jev product_roleだけを付加し、raw・Opportunity Score・AI judge score・過去group・source_idはLLMに渡しません。
+
+## Dry-run
+
+```powershell
+go run ./cmd/rerank -dry-run -gate data/day3/gate-v1.json -limit 0
+```
+
+API呼び出しとrerankerテーブルへの書き込みはありません。商品数、既評価数、pending、model、version、入力例、rubric、UTF-8 request byte数を表示します。byte数をtoken数や費用とは扱いません。
+APIキーは `.env` の `ANTHROPIC_API_KEY`。既存のローカル設定は `-env-file <path>` でも指定できます。
+キー未設定で通常実行した場合も、dry-runを表示して実API評価前に停止します。
+
+## 段階的実行と再開
+
+```powershell
+# Stage A: 10件。JSON構造・6軸範囲・model一致・DB保存を確認
+go run ./cmd/rerank -limit 10
+# Stage B: pendingを追加40件、累計約50件。分布と理由を確認
+go run ./cmd/rerank -limit 40
+# Stage C: 残り全件
+go run ./cmd/rerank -limit 0
+```
+
+実API評価前の応答構造確認はテスト用fixtureによるもので、実サービスとの接続確認ではありません。
+失敗商品は保存せず、成功ごとに即時保存します。同じversionは通常再評価しません。
+versionはmodel・rubric・Schema・Gate・cohort/input hash・tie-break・reasoning設定を拘束し、変更を検出したら停止します。
+HTTP timeout 60秒、商品ごとのbudget 3分、最大2 retry、指数backoff、429/5xx対応。認証エラーは即時停止し、provider error bodyはログに出しません。
+
+実行時だけ追加するテーブルは `reranker_versions`、`llm_product_evaluations`、`llm_rerank_runs`。
+既存のproducts/product_evaluationsを更新しません。Day 2のschema versionは保持し、Day 3追加テーブルは冪等に作成します。
+各軸・理由・request/raw response・入力hash・評価日時・Gate/version/modelを保存します。
+usageが返った呼び出しのinput/output/cached tokensと推定費用をrun単位で記録します。
+不明なusageや課金され得る失敗retryも別集計し、推定費用の既知小計を実請求額とは扱いません。
+料金は `-prices config/llm-prices.example.json` で切り替え可能です。料金変更は採点に影響しません。
+
+## 全件完了後のTop20とblind review
+
+```powershell
+go run ./cmd/rerank -export-review data/day3
+```
+
+全Gate通過商品が評価済みの場合だけ出力します。
+overall、investigation、comparison、independent value、buyer problem、wrong choice、audienceの降順で固定sortし、全軸同点の最終tieのみsource/IDで安定化します。
+Random20は同じGate通過集合からTop20を除いてseed=20261004で抽出。40件のID・順序もランダム化します。
+blind/key、Top20/Random20一覧、事前判定基準を含むplanを保存し、既存sampleは上書きしません。
+URLのquery/fragmentを除去し、blind CSVには商品情報だけを含めます。
+
+3つの新しい独立文脈のAI judgeには `day3-review-blind.csv` だけを与えてください。
+Jev/LLM結果、key、過去履歴、他judgeの回答は共有しません。評価は商品の優劣でなく購入判断コンテンツの価値（1〜5）。
+`day3-judge-1.json`〜`day3-judge-3.json` に40件ずつの `review_id`、整数 `score`、短い日本語 `notes` を保存します。
+
+```powershell
+go run ./cmd/analyze-day3
+```
+
+120採点の完了を検証した後だけkeyを読み、40件一対一・重複なし・20+20を検証します。
+不一致なら停止。元CSVは変更せず、`day3-ai-judge.csv`、`day3-analysis.csv`、`day3-comparison.json` を保存します。
+平均/中央値/SD、4以上・4.5以上率、Hedges g、Cliff、bootstrap 10,000回95% CI、judge別差、overall/6軸のSpearmanを出力します。
+Strong GOは差>=0.5、全judge正、g>=0.5、CI下限>0。Weak GOは差>=0.2で全judge正。差<0.2はNO-GO、その他はinconclusive。
+独立AI judgeとの一致の検証であり、人間ground truth・収益性の証明ではありません。Day 4へ自動で進みません。
+
+```powershell
+go test ./...
+go vet ./...
+```
+
+DB・環境ファイル・実API raw data・review/AI judge結果はGitに含めず、`data/` またはリポジトリ外の出力先に保存してください。
+
+Claude料金は100万tokenあたり通常入力USD2、出力USD10、cache read USD0.20、5分cache write USD2.50。明示的cache_controlは使いません。InputTokensは通常入力+cache read+cache writeの合計です。
