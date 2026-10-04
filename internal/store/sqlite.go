@@ -30,14 +30,14 @@ func Open(path string) (*Store, error) {
 	}
 	db.SetMaxOpenConns(1)
 	fail := func(err error) (*Store, error) { db.Close(); return nil, err }
-	if _, err = db.Exec(`PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;`); err != nil {
+	if _, err = db.Exec(`PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;`); err != nil {
 		return fail(err)
 	}
 	var version int
 	if err = db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 1 {
+	if version > 2 {
 		return fail(errors.New("database schema newer than this program"))
 	}
 	if version == 0 {
@@ -60,6 +60,11 @@ func Open(path string) (*Store, error) {
 			return fail(err)
 		}
 		if err = tx.Commit(); err != nil {
+			return fail(err)
+		}
+	}
+	if version < 2 {
+		if err = migrateEvaluations(db); err != nil {
 			return fail(err)
 		}
 	}
