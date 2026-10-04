@@ -325,3 +325,36 @@ go vet ./...
 DB・環境ファイル・実API raw data・review/AI judge結果はGitに含めず、`data/` またはリポジトリ外の出力先に保存してください。
 
 Claude料金は100万tokenあたり通常入力USD2、出力USD10、cache read USD0.20、5分cache write USD2.50。明示的cache_controlは使いません。InputTokensは通常入力+cache read+cache writeの合計です。
+
+## Day 3.5: product family / diversification
+
+保存済み329件を再利用し、API呼出しを行わず商品レベル順位とテーマ選択を分離します。
+元Day3 DBのコピーを指定してください。以下はリポジトリから実行する例です。
+
+```powershell
+Copy-Item ../day3-money.db ../day3-5-money.db
+go run ./cmd/diversify -db ../day3-5-money.db -out ../../outputs/day3-5-results/data -family-cap 2 -top 20 -judge ../../outputs/day3-live-results/data/day3-analysis.csv -holdout ../../outputs/day2-live-results/data/day2-6-key.csv
+```
+
+同時にnone/cap1/cap2/cap3/penalty/MMRを出力します。主方式cap2は固定です。
+NFKC・広告除去・型番抽出でLevel Aを識別し、brand+seriesでLevel Bを作成。
+Aは最大1代表、Bは最大2代表。互換フィルターは適合先のbrandと物理メーカーを混同しません。
+型番・ブランド不明は保守的に分け、brand既知でモデル不明のfallbackはJaccard>=0.90のcomplete link。
+Level Cは商品名に明示された用途キーワードによる暫定テーマです。
+
+元のoverall/6軸は変更せず、別テーブルにversion付きassignmentとrankを保存。
+同じversionの設定・入力・algorithm fingerprintが変わった場合は上書きを拒否します。
+`-dry-run` はCSV/JSON/reportを生成し、新テーブルを保存しません。
+`diversified_rank=0` はcapや同一商品代表選択により除外された商品です。
+生成物はproduct-families/diversified-ranking/top20/day4-candidates CSV、statistics JSON、
+Day3-5-diversification-report.md、evaluation-manifests/day3-claude.json。
+Manifestは保存済みrequest/responseとrunの料金snapshotから生成し、secretを保存しません。
+
+Day3.5のscore lossは元Claudeの0〜100点単位。指定された0.20/0.30点基準を適用し、
+参考の0〜1換算値をGO判定に用いません。既存judge被覆部分だけで新Top20全体の品質は証明できません。
+Day4調査・コンテンツ生成・公開には進みません。
+
+```powershell
+go test ./...
+go vet ./...
+```
