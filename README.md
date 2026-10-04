@@ -249,12 +249,12 @@ rawはv1と同じ式のclamp前の値です。9桁CSVの丸め誤差を境界比
 
 ## モデルと評価
 
-固定モデルは `gpt-5.4-2026-03-05`、versionは `llm-reranker-v1`。
-日付付きsnapshotを固定でき、構造化出力に対応する高性能モデルとして選びました。
-[公式モデル仕様・料金](https://developers.openai.com/api/docs/models/gpt-5.4)と
-[Structured Outputs仕様](https://developers.openai.com/api/docs/guides/structured-outputs)を2026-10-04に確認しています。
-Responses APIのstrict JSON Schemaで6軸とoverallを0〜100整数として取得します。
-reasoning=medium、max_output_tokens=4096、store=false。Web検索や他のツールは有効にしません。
+固定モデルは `claude-sonnet-5-5`、versionは `llm-reranker-claude-v1`。
+公式仕様上、日付なしIDも固定snapshotです。OpenAI版は実評価0件のまま、ユーザー指定によりClaude用の新versionへ切り替えました。
+[公式モデル仕様・料金](https://platform.claude.com/docs/en/models/sonnet-5-5/overview)と
+[Structured Outputs仕様](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)を2026-10-04に確認しています。
+Messages APIのJSON Schemaで6軸とoverallを取得し、0〜100整数制約はGo側でも検証します。
+adaptive thinking、effort=medium、max_tokens=4096。Web検索や他のツールは有効にしません。
 商品データは保存済みJev stateから転記し、追加のdescription加工は行いません。
 Jev product_roleだけを付加し、raw・Opportunity Score・AI judge score・過去group・source_idはLLMに渡しません。
 
@@ -265,7 +265,7 @@ go run ./cmd/rerank -dry-run -gate data/day3/gate-v1.json -limit 0
 ```
 
 API呼び出しとrerankerテーブルへの書き込みはありません。商品数、既評価数、pending、model、version、入力例、rubric、UTF-8 request byte数を表示します。byte数をtoken数や費用とは扱いません。
-APIキーは `.env` の `OPENAI_API_KEY`。既存のローカル設定は `-env-file <path>` でも指定できます。
+APIキーは `.env` の `ANTHROPIC_API_KEY`。既存のローカル設定は `-env-file <path>` でも指定できます。
 キー未設定で通常実行した場合も、dry-runを表示して実API評価前に停止します。
 
 ## 段階的実行と再開
@@ -323,3 +323,5 @@ go vet ./...
 ```
 
 DB・環境ファイル・実API raw data・review/AI judge結果はGitに含めず、`data/` またはリポジトリ外の出力先に保存してください。
+
+Claude料金は100万tokenあたり通常入力USD2、出力USD10、cache read USD0.20、5分cache write USD2.50。明示的cache_controlは使いません。InputTokensは通常入力+cache read+cache writeの合計です。

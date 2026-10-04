@@ -50,7 +50,7 @@ func BuildPlan(ctx context.Context, db *store.Store, c Config, limit int) (Plan,
 	if c.Version == "" || c.Model == "" || limit < 0 {
 		return p, errors.New("invalid reranker config/limit")
 	}
-	for _, price := range []float64{c.Prices.InputUSDPerMillion, c.Prices.CachedInputUSDPerMillion, c.Prices.OutputUSDPerMillion} {
+	for _, price := range []float64{c.Prices.InputUSDPerMillion, c.Prices.CachedInputUSDPerMillion, c.Prices.OutputUSDPerMillion, c.Prices.CacheWriteUSDPerMillion} {
 		if math.IsNaN(price) || math.IsInf(price, 0) || price < 0 {
 			return p, errors.New("invalid token price")
 		}
@@ -102,14 +102,14 @@ func BuildPlan(ctx context.Context, db *store.Store, c Config, limit int) (Plan,
 	}
 	// Billing prices do not influence scoring; rubric/schema/selection rules do.
 	p.ConfigJSON, e = json.Marshal(struct {
-		Version, Model, Rubric string
-		Gate                   gate.Config
-		Schema                 map[string]any
-		Cohort                 []Member
-		TieBreak               string
-		Reasoning              string
-		MaxOutputTokens        int
-	}{c.Version, c.Model, llmjudge.Rubric, c.Gate, llmjudge.Schema(), cohort, "overall DESC, investigation DESC, comparison DESC, independent value DESC, buyer problem DESC, wrong choice DESC, audience DESC, source/source_id ASC (last exact tie only)", "medium", 4096})
+		Version, Model, Rubric, Provider, APIVersion, Thinking string
+		Gate                                                   gate.Config
+		Schema                                                 map[string]any
+		Cohort                                                 []Member
+		TieBreak                                               string
+		Reasoning                                              string
+		MaxOutputTokens                                        int
+	}{c.Version, c.Model, llmjudge.Rubric, "anthropic", "2023-06-01", "adaptive", c.Gate, llmjudge.Schema(), cohort, "overall DESC, investigation DESC, comparison DESC, independent value DESC, buyer problem DESC, wrong choice DESC, audience DESC, source/source_id ASC (last exact tie only)", "medium", 4096})
 	if e != nil {
 		return p, e
 	}
@@ -168,7 +168,7 @@ type Run struct {
 	StartedAt                                                                                      time.Time
 	FinishedAt                                                                                     *time.Time
 	Attempted, Succeeded, Failed, Skipped, HTTPAttempts, UnknownBillingAttempts, UnknownUsageCalls int
-	InputTokens, OutputTokens, CachedInputTokens                                                   int64
+	InputTokens, OutputTokens, CachedInputTokens, CacheWriteInputTokens                            int64
 	EstimatedCost                                                                                  float64
 	Prices                                                                                         llmjudge.Prices
 	Errors                                                                                         []string
@@ -209,6 +209,7 @@ func RunPlan(ctx context.Context, db *store.Store, p Plan, client Evaluator, w i
 			r.InputTokens += call.Usage.Input
 			r.OutputTokens += call.Usage.Output
 			r.CachedInputTokens += call.Usage.Cached
+			r.CacheWriteInputTokens += call.Usage.CacheWrite
 			r.EstimatedCost += *r.Prices.Cost(call.Usage)
 		} else {
 			r.UnknownUsageCalls++

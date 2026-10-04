@@ -41,14 +41,14 @@ func (e *APIError) Error() string { return fmt.Sprintf("LLM HTTP %d: %s", e.Stat
 func Fatal(err error) bool        { var e *APIError; return errors.As(err, &e) && e.Fatal }
 func NewClient(c ClientConfig) (*Client, error) {
 	if strings.TrimSpace(c.APIKey) == "" || strings.ContainsAny(c.APIKey, "\r\n") {
-		return nil, errors.New("OPENAI_API_KEY absent/invalid")
+		return nil, errors.New("ANTHROPIC_API_KEY absent/invalid")
 	}
 	if c.Endpoint == "" {
-		c.Endpoint = "https://api.openai.com/v1/responses"
+		c.Endpoint = "https://api.anthropic.com/v1/messages"
 	}
 	u, e := url.Parse(c.Endpoint)
-	if e != nil || u.User != nil || u.RawQuery != "" || u.Fragment != "" || !((u.Scheme == "https" && u.Host == "api.openai.com" && u.Path == "/v1/responses") || (u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "::1"))) {
-		return nil, errors.New("only official OpenAI Responses endpoint or loopback test server allowed")
+	if e != nil || u.User != nil || u.RawQuery != "" || u.Fragment != "" || !((u.Scheme == "https" && u.Host == "api.anthropic.com" && u.Path == "/v1/messages") || (u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "::1"))) {
+		return nil, errors.New("only official Anthropic Messages endpoint or loopback test server allowed")
 	}
 	if c.Timeout <= 0 || c.Budget <= 0 || c.Backoff <= 0 || c.Interval < 0 || c.Retries < 0 || c.Retries > 6 {
 		return nil, errors.New("invalid timeout/retry configuration")
@@ -93,7 +93,8 @@ func (c *Client) Evaluate(ctx context.Context, model string, in Input) (Call, er
 		if e != nil {
 			return call, errors.New("request setup failed")
 		}
-		req.Header.Set("Authorization", "Bearer "+c.c.APIKey)
+		req.Header.Set("x-api-key", c.c.APIKey)
+		req.Header.Set("anthropic-version", "2023-06-01")
 		req.Header.Set("Content-Type", "application/json")
 		c.last = time.Now()
 		call.Attempts++
@@ -139,54 +140,44 @@ func (c *Client) Evaluate(ctx context.Context, model string, in Input) (Call, er
 }
 func parseResponse(call *Call, raw []byte, model string) error {
 	var r struct {
-		Model, Status string
-		Usage         *struct {
-			Input   *int64 `json:"input_tokens"`
-			Output  *int64 `json:"output_tokens"`
-			Details struct {
-				Cached int64 `json:"cached_tokens"`
-			} `json:"input_tokens_details"`
+		Model      string
+		StopReason string `json:"stop_reason"`
+		Usage      *struct {
+			Input      *int64 `json:"input_tokens"`
+			Output     *int64 `json:"output_tokens"`
+			Cached     int64  `json:"cache_read_input_tokens"`
+			CacheWrite int64  `json:"cache_creation_input_tokens"`
 		}
-		Output []struct {
-			Type    string
-			Content []struct{ Type, Text string }
-		}
+		Content []struct{ Type, Text string }
 	}
 	if json.Unmarshal(raw, &r) != nil {
-		return errors.New("malformed Responses JSON")
+		return errors.New("malformed Messages JSON")
 	}
 	call.Model = r.Model
 	if r.Usage != nil && r.Usage.Input != nil && r.Usage.Output != nil {
-		i, o, k := *r.Usage.Input, *r.Usage.Output, r.Usage.Details.Cached
-		if i < 0 || o < 0 || k < 0 || k > i {
+		i, o, k, w := *r.Usage.Input, *r.Usage.Output, r.Usage.Cached, r.Usage.CacheWrite
+		if i < 0 || o < 0 || k < 0 || w < 0 {
 			return errors.New("invalid token usage")
 		}
-		call.Usage = Usage{i, o, k, true}
+		// Anthropic input_tokens excludes cache read and cache creation tokens.
+		call.Usage = Usage{Input: i + k + w, Output: o, Cached: k, CacheWrite: w, Known: true}
 	}
 	if r.Model != model {
 		return &APIError{Fatal: true, Detail: "resolved model differs from pinned snapshot"}
 	}
-	if r.Status != "completed" {
-		return errors.New("LLM response incomplete; no evaluation saved")
+	if r.StopReason != "end_turn" {
+		return errors.New("LLM response incomplete/refused; no evaluation saved")
 	}
 	text := ""
-	for _, out := range r.Output {
-		if out.Type != "message" {
-			continue
-		}
-		for _, item := range out.Content {
-			if item.Type == "refusal" {
-				return errors.New("LLM refusal; no evaluation saved")
-			}
-			if item.Type == "output_text" {
-				text += item.Text
-			}
+	for _, item := range r.Content {
+		if item.Type == "text" {
+			text += item.Text
 		}
 	}
-	s, e := ParseScores([]byte(text))
+	scores, e := ParseScores([]byte(text))
 	if e != nil {
 		return e
 	}
-	call.Scores = s
+	call.Scores = scores
 	return nil
 }

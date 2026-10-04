@@ -16,7 +16,7 @@ func fixture() Scores {
 }
 func response(s Scores, model string) []byte {
 	scores, _ := json.Marshal(s)
-	b, _ := json.Marshal(map[string]any{"model": model, "status": "completed", "usage": map[string]any{"input_tokens": 100, "output_tokens": 20, "input_tokens_details": map[string]any{"cached_tokens": 10}}, "output": []any{map[string]any{"type": "message", "content": []any{map[string]any{"type": "output_text", "text": string(scores)}}}}})
+	b, _ := json.Marshal(map[string]any{"model": model, "stop_reason": "end_turn", "usage": map[string]any{"input_tokens": 100, "output_tokens": 20, "cache_read_input_tokens": 10, "cache_creation_input_tokens": 5}, "content": []any{map[string]any{"type": "text", "text": string(scores)}}})
 	return b
 }
 func testClient(t *testing.T, server *httptest.Server, retries int) *Client {
@@ -31,7 +31,7 @@ func TestRetryStructuredRequestUsage(t *testing.T) {
 	calls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
-		if r.Header.Get("Authorization") != "Bearer synthetic-secret" {
+		if r.Header.Get("x-api-key") != "synthetic-secret" || r.Header.Get("anthropic-version") != "2023-06-01" {
 			t.Error("missing auth")
 		}
 		var body map[string]json.RawMessage
@@ -41,7 +41,7 @@ func TestRetryStructuredRequestUsage(t *testing.T) {
 		if _, ok := body["tools"]; ok {
 			t.Error("tools enabled")
 		}
-		if !strings.Contains(string(body["text"]), `"strict":true`) {
+		if !strings.Contains(string(body["output_config"]), `"type":"json_schema"`) {
 			t.Error("not strict schema")
 		}
 		if calls == 1 {
@@ -97,5 +97,41 @@ func TestScoreValidationAndModelPin(t *testing.T) {
 	var call Call
 	if e := parseResponse(&call, response(fixture(), "other"), Model); e == nil || !Fatal(e) {
 		t.Fatal("model pin")
+	}
+}
+
+func TestClaudeUsageCostAndIncomplete(t *testing.T) {
+	var call Call
+	if err := parseResponse(&call, response(fixture(), Model), Model); err != nil {
+		t.Fatal(err)
+	}
+	if call.Usage.Input != 115 || call.Usage.Cached != 10 || call.Usage.CacheWrite != 5 {
+		t.Fatal(call.Usage)
+	}
+	cost := DefaultPrices().Cost(call.Usage)
+	expected := (100.0*2 + 10*.2 + 5*2.5 + 20*10) / 1e6
+	if cost == nil || *cost != expected {
+		t.Fatal(cost, expected)
+	}
+	bad := strings.Replace(string(response(fixture(), Model)), "end_turn", "max_tokens", 1)
+	if err := parseResponse(&call, []byte(bad), Model); err == nil {
+		t.Fatal("accepted truncated output")
+	}
+	body, err := Request(Model, Input{ProductName: "fixture"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var request map[string]json.RawMessage
+	if err := json.Unmarshal(body, &request); err != nil {
+		t.Fatal(err)
+	}
+	if string(request["system"]) != fmt.Sprintf("%q", Rubric) {
+		var rubric string
+		if json.Unmarshal(request["system"], &rubric) != nil || rubric != Rubric {
+			t.Fatal("changed rubric")
+		}
+	}
+	if strings.Contains(string(body), `"minimum"`) || strings.Contains(string(body), `"maximum"`) {
+		t.Fatal("unsupported schema constraints")
 	}
 }

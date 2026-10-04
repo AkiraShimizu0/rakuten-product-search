@@ -80,11 +80,11 @@ func run(args []string, out io.Writer) error {
 		fmt.Fprintln(out, "Pending=0; API calls=0")
 		return nil
 	}
-	if os.Getenv("OPENAI_API_KEY") == "" {
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
 		p.DryRun(out)
-		return errors.New("OPENAI_API_KEY not found; stopped at dry-run; no API calls")
+		return errors.New("ANTHROPIC_API_KEY not found; stopped at dry-run; no API calls")
 	}
-	client, e := llmjudge.NewClient(llmjudge.ClientConfig{APIKey: os.Getenv("OPENAI_API_KEY"), Timeout: 60 * time.Second, Budget: 3 * time.Minute, Backoff: time.Second, Interval: 250 * time.Millisecond, Retries: 2})
+	client, e := llmjudge.NewClient(llmjudge.ClientConfig{APIKey: os.Getenv("ANTHROPIC_API_KEY"), Timeout: 60 * time.Second, Budget: 3 * time.Minute, Backoff: time.Second, Interval: 250 * time.Millisecond, Retries: 2})
 	if e != nil {
 		return e
 	}
