@@ -358,3 +358,34 @@ Day4調査・コンテンツ生成・公開には進みません。
 go test ./...
 go vet ./...
 ```
+
+## Day 3.6: diversification blind quality validation
+
+Day3 original Top20と固定済みDay3.5 cap2 Top20のunionを、同一rubricの新しい独立文脈3 judgeで採点します。
+アプリのrubric/model/weights/Gate/rank/family/cap/5テーマは変更しません。旧judgeは再利用しません。
+
+```powershell
+go run ./cmd/validate-diversification -mode prepare -data ../../outputs/day3-6-results/data
+```
+
+`prepare` は新しい空ディレクトリだけに書き、既存成果物を上書きしません。DBはmode=roで読むだけです。
+固定seed=20261004で匿名ID/順序を作り、全文の商品説明・価格・レビュー・shop/categoryだけをblind CSVへ保存。
+keyは別ファイル。各judgeへblind CSVと`validation.Rubric`の共通基準だけを渡し、
+`day3-6-judge-1/2/3.json`にreview_id/1〜5整数score/日本語notesのarrayを保存します。
+
+```powershell
+go run ./cmd/validate-diversification -mode analyze -data ../../outputs/day3-6-results/data
+```
+
+全judgeのID/件数/score/notesを検証した後だけkeyを読み、20+20、一対一join、固定diversity/Claude平均を照合。
+Overlapを共有するunion listing-unit bootstrap（10,000回、random membership denominators）と、
+disjoint changed-items群内bootstrapを両方出力します。SDはsample、Spearmanはtie平均rank。
+入替pairはremoved原順位/added多様化順位による説明用対応であり、因果的な1:1ではありません。
+
+判断の曖昧な部分は採点前protocolで固定: >=4.5率の大幅悪化は10ポイント超、新規平均<=2.5はcatastrophic、
+平均<3の新規商品3件以上は多数、changed差<=−0.50かつCI上限<0は明確な低下。
+ユーザー指定の「3 judge全て悪化」はstrictly negativeとしてNO-GOを優先します。
+Day3.5 NO-GOを変更せず、Day3.6 GOはAI judge品質維持に限定。Day4へ自動で進みません。
+
+再計算はblind/key/protocol/3judge JSONだけを別の新規dataディレクトリへコピーし、同じanalyzeコマンドで行います。
+入力CSV/DB、judge結果、key、実験出力・環境ファイルはGitに含めません。
