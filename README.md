@@ -431,3 +431,15 @@ analyzeはday5-judge-1/2/3.jsonとday5-audit.jsonを必要とし、全12候補�
 
 主差はprototype平均−競合3ページ中の最大平均。judge別の非劣性は各judge自身の最良競合に対して判定します。Strong GO/GOには重大監査違反0が必要です。
 比較は構造化要約上の独立AI評価であり、人間ground truth、全文ページの優越性、SEOや収益を証明しません。価格の旧snapshotと現在確認のunknownを区別し、調査データ・記事・API keyはGitに含めません。
+
+## Day 6: local canary artifact
+
+```powershell
+go run ./cmd/build-canary -out ../../outputs/day6-canary-publication/site/new-preview.html
+# 正規公開先が確定した場合だけ -canonical に実際のHTTPS URLを指定する
+```
+
+入力はGit管理した `content/published/compact-air-purifier-placement.md`。ディレクトリ名に関係なく現段階では未公開です。
+小さな限定Markdown rendererが見出し・表・HTTPS資料リンクを生成します。広告表示、H1、禁止表現、canonical、affiliate sponsoredを検査し、既存出力の上書きを拒否します。一般的なCMS/Markdown engineではありません。
+公開先が見つからない場合はPUBLICATION_TARGET_MISSINGで停止します。canonicalを省略した出力はローカル準備稿で、live SEOチェック成功を意味しません。
+新しいホスティング・analytics・Search Console設定を採用せず、計測CSV/manifestの未取得値はunknownとして扱います。CLIはdeploy、index申請、tracking、2本目公開を実行しません。
