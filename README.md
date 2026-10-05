@@ -411,3 +411,23 @@ Market Scoreは7軸0〜5、risk3軸は別表示。Strong GO/GO/HOLD/NO-GOの事�
 検索ツール返却順とGoogle organic rankは区別し、domain分類はheuristicと明記。
 検索量・SKU別報酬率は未確認ならunknown、注文UIと在庫確約は区別します。
 レポートは調査主体の別artifactで、CLIは記事生成・公開・次工程を実行しません。
+
+## Day 5: evidence-backed content validation
+
+固定3テーマのローカルprototypeと匿名化した競合要約を比較します。公開や評価API呼び出しは行いません。
+
+```powershell
+go run ./cmd/validate-content -mode prepare -data ../../outputs/day5-content-validation/data
+# blind CSVだけを独立3 judgeに渡し、別reviewerのclaim auditを保存した後:
+go run ./cmd/validate-content -mode analyze -data ../../outputs/day5-content-validation/data
+go test ./...
+go vet ./...
+git diff --check
+```
+
+prepareにはday5-input.jsonと隣のcontentディレクトリの3記事が必要です。claim/source/questionの参照と重複を検証し、計算・固定seedの匿名ID・CSV・SHA256 manifestを生成します。
+analyzeはday5-judge-1/2/3.jsonとday5-audit.jsonを必要とし、全12候補の整数score/ID/notes検証後にだけprivate keyを読みます。全29 claimのaudit、input/blind/prototype hashも照合します。
+既存出力への上書きは拒否します。再実行は新規ディレクトリに入力とcontentをコピーしてください。judge再集計にはprepared/key/blind/manifestもコピーし、集計出力を含めないでください。
+
+主差はprototype平均−競合3ページ中の最大平均。judge別の非劣性は各judge自身の最良競合に対して判定します。Strong GO/GOには重大監査違反0が必要です。
+比較は構造化要約上の独立AI評価であり、人間ground truth、全文ページの優越性、SEOや収益を証明しません。価格の旧snapshotと現在確認のunknownを区別し、調査データ・記事・API keyはGitに含めません。
