@@ -389,3 +389,25 @@ Day3.5 NO-GOを変更せず、Day3.6 GOはAI judge品質維持に限定。Day4�
 
 再計算はblind/key/protocol/3judge JSONだけを別の新規dataディレクトリへコピーし、同じanalyzeコマンドで行います。
 入力CSV/DB、judge結果、key、実験出力・環境ファイルはGitに含めません。
+
+## Day 4: external market evidence export
+
+固定5テーマの外部市場調査を、手動確認済みの構造化inputから出力します。
+評価モデル・Gate・weights・rank・familyは変更せず、API再評価は行いません。
+このCLIはWeb検索・価格収集を自動実行せず、観測済み根拠と固定rubricの再計算だけを行います。
+
+```powershell
+go run ./cmd/validate-day4 -data ../../outputs/day4-market-validation/data -out ../../outputs/day4-reexport/data -commit 5facdb2
+go test ./...
+go vet ./...
+```
+
+入力は `day4-research-input.json`、`day4-search-results.json`、検索前に凍結した
+`day4-query-set.csv`、hash付き `day4-protocol.json`。新規の出力先を指定してください。
+既存出力は上書きせず、query hash改変・テーマ変更・score/risk範囲外・欠落/重複query・出典参照不一致は停止します。
+同じinputならCSV/JSONが再現します。調査CSV/価格/全文外部コンテンツ/API keyはGitに含めません。
+
+Market Scoreは7軸0〜5、risk3軸は別表示。Strong GO/GO/HOLD/NO-GOの事前gateを保持します。
+検索ツール返却順とGoogle organic rankは区別し、domain分類はheuristicと明記。
+検索量・SKU別報酬率は未確認ならunknown、注文UIと在庫確約は区別します。
+レポートは調査主体の別artifactで、CLIは記事生成・公開・次工程を実行しません。
