@@ -47,7 +47,10 @@ func New(cfg Config) (*Client, error) {
 	return &Client{cfg: cfg, http: &http.Client{Timeout: cfg.Timeout, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
-type Query struct{ GenreID, Keyword, Sort string }
+type Query struct {
+	GenreID, Keyword, Sort, ItemCode string
+	AllOffers                        bool
+}
 type Page struct {
 	Items     []json.RawMessage `json:"items"`
 	PageCount int               `json:"pageCount"`
@@ -70,7 +73,7 @@ func pause(ctx context.Context, d time.Duration) error {
 
 // SearchPage is used serially: every attempt, including retries, is paced.
 func (c *Client) SearchPage(ctx context.Context, q Query, page int) (Page, error) {
-	if page < 1 || page > 100 || (q.GenreID == "" && strings.TrimSpace(q.Keyword) == "") {
+	if page < 1 || page > 100 || (q.GenreID == "" && strings.TrimSpace(q.Keyword) == "" && q.ItemCode == "") {
 		return Page{}, errors.New("genre or keyword required; page must be 1..100")
 	}
 	u, _ := url.Parse(c.cfg.Endpoint)
@@ -93,13 +96,32 @@ func (c *Client) SearchPage(ctx context.Context, q Query, page int) (Page, error
 		params.Set("affiliateId", c.cfg.AffiliateID)
 	}
 	u.RawQuery = params.Encode()
+	if q.ItemCode != "" {
+		params.Set("itemCode", q.ItemCode)
+	}
+	if q.AllOffers {
+		params.Set("availability", "0")
+	}
+	u.RawQuery = params.Encode()
+	body, err := c.getJSON(ctx, u, page)
+	if err != nil {
+		return Page{}, err
+	}
+	var result Page
+	if json.Unmarshal(body, &result) != nil || result.Items == nil {
+		return Page{}, errors.New("invalid API items response")
+	}
+	return result, nil
+}
+
+func (c *Client) getJSON(ctx context.Context, u *url.URL, page int) ([]byte, error) {
 	for attempt := 0; attempt <= c.cfg.MaxRetries; attempt++ {
 		if err := pause(ctx, time.Until(c.lastRequest.Add(c.cfg.Interval))); err != nil {
-			return Page{}, err
+			return nil, err
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 		if err != nil {
-			return Page{}, errors.New("cannot construct API request")
+			return nil, errors.New("cannot construct API request")
 		}
 		req.Header.Set("accessKey", c.cfg.AccessKey)
 		req.Header.Set("Accept", "application/json")
@@ -111,11 +133,11 @@ func (c *Client) SearchPage(ctx context.Context, q Query, page int) (Page, error
 		var retryDelay time.Duration
 		if err != nil {
 			if ctx.Err() != nil {
-				return Page{}, ctx.Err()
+				return nil, ctx.Err()
 			}
 			// url.Error includes the app ID in its URL. Do not log it.
 			if attempt == c.cfg.MaxRetries {
-				return Page{}, errors.New("API network/timeout failure; retries exhausted")
+				return nil, errors.New("API network/timeout failure; retries exhausted")
 			}
 		} else {
 			body, readErr := io.ReadAll(io.LimitReader(resp.Body, 16*1024*1024+1))
@@ -123,28 +145,21 @@ func (c *Client) SearchPage(ctx context.Context, q Query, page int) (Page, error
 			if resp.StatusCode == http.StatusOK {
 				if readErr == nil {
 					if len(body) > 16*1024*1024 {
-						return Page{}, errors.New("API response exceeds 16 MiB")
+						return nil, errors.New("API response exceeds 16 MiB")
 					}
-					var result Page
-					if err := json.Unmarshal(body, &result); err != nil {
-						return Page{}, errors.New("invalid API JSON response")
-					}
-					if result.Items == nil {
-						return Page{}, errors.New("API response missing items array")
-					}
-					return result, nil
+					return body, nil
 				}
 				if attempt == c.cfg.MaxRetries {
-					return Page{}, errors.New("API response read failed; retries exhausted")
+					return nil, errors.New("API response read failed; retries exhausted")
 				}
 			} else {
 				retryable := resp.StatusCode == 429 || (resp.StatusCode >= 500 && resp.StatusCode <= 599)
 				if !retryable || attempt == c.cfg.MaxRetries {
-					return Page{}, fmt.Errorf("Rakuten API HTTP %d%s (page %d, attempts %d); check credentials, allowed IP, origin and query", resp.StatusCode, errorHint(body), page, attempt+1)
+					return nil, fmt.Errorf("Rakuten API HTTP %d%s (page %d, attempts %d); check credentials, allowed IP, origin and query", resp.StatusCode, errorHint(body), page, attempt+1)
 				}
 				retryDelay = retryAfter(resp.Header.Get("Retry-After"), time.Now())
 				if retryDelay > 2*time.Minute {
-					return Page{}, errors.New("API Retry-After exceeds two minutes; try again later")
+					return nil, errors.New("API Retry-After exceeds two minutes; try again later")
 				}
 			}
 		}
@@ -156,10 +171,10 @@ func (c *Client) SearchPage(ctx context.Context, q Query, page int) (Page, error
 			delay = retryDelay
 		}
 		if err := pause(ctx, delay); err != nil {
-			return Page{}, err
+			return nil, err
 		}
 	}
-	return Page{}, errors.New("API retries exhausted")
+	return nil, errors.New("API retries exhausted")
 }
 
 // Only fixed known messages are exposed, never arbitrary response bodies.
