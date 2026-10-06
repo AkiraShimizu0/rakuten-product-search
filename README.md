@@ -443,3 +443,28 @@ go run ./cmd/build-canary -out ../../outputs/day6-canary-publication/site/new-pr
 小さな限定Markdown rendererが見出し・表・HTTPS資料リンクを生成します。広告表示、H1、禁止表現、canonical、affiliate sponsoredを検査し、既存出力の上書きを拒否します。一般的なCMS/Markdown engineではありません。
 公開先が見つからない場合はPUBLICATION_TARGET_MISSINGで停止します。canonicalを省略した出力はローカル準備稿で、live SEOチェック成功を意味しません。
 新しいホスティング・analytics・Search Console設定を採用せず、計測CSV/manifestの未取得値はunknownとして扱います。CLIはdeploy、index申請、tracking、2本目公開を実行しません。
+
+## ChoiceLen production canary (Day 6.1)
+
+The static site at https://choicelen.page/ contains one frozen Day 6 article:
+https://choicelen.page/articles/compact-air-purifier-placement/ . Claim-bearing Markdown is preserved; the build changes publication metadata and navigation/CSS only. Workers Static Assets serves the committed `site/`, with custom-domain routing in `wrangler.jsonc`. Wrangler is pinned to 4.147.0 in the workflow.
+
+To reproduce the publication build, choose a **new** output directory (the CLI refuses an existing one):
+
+```sh
+go run ./cmd/build-choiceLen -date 2026-10-06 -out outputs/choicelen-rebuild
+go run ./cmd/preview-choiceLen -dir site
+```
+
+Preview: http://127.0.0.1:8787/ . Production verification uses normal certificate validation and writes new D+0 evidence without overwriting it:
+
+```sh
+go run ./cmd/verify-choiceLen -out outputs/choicelen-new-check
+go test ./...
+go vet ./...
+git diff --check
+```
+
+`.github/workflows/choiceLen.yml` uses repository Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Never place these values in config, HTML, commits or issue/PR text. A deploy occurs only with `workflow_dispatch`, or an explicit `[deploy-choicelen]` commit marker on `day6-1-production-publication`. Until the workflow is on the default branch, marked branch pushes are the explicit trigger. Ordinary pushes do not deploy. No existing PR stack is merged by the deployment. `workers.dev` is disabled; no extra subdomain is required.
+
+Public publication metadata and the anchored measurement template are versioned in `data/day6-publication-manifest.json` and `data/day6-measurement-template.csv`. Original blocked Day 6 artifacts are retained separately. Current status: **GO_WITH_AFFILIATE_PENDING**. No real affiliate ID was configured, so there are zero affiliate links. Advertising disclosure remains visible. Search Console, analytics, indexing and conversion metrics are unavailable/unknown; no third-party tracking or measurement automation was enabled.
