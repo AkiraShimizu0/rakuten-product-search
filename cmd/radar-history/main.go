@@ -25,6 +25,8 @@ func main() {
 }
 func run() error {
 	stage := flag.String("stage", "status", "export|bootstrap|run|status")
+	backend := flag.String("backend", "r2", "r2|github (verified private repo)")
+	historyRepo := flag.String("history-repo", "AkiraShimizu0/choicelen-radar-history", "private canonical history repo")
 	bucket := flag.String("bucket", "choicelen-private-price-radar", "private R2 bucket")
 	catalog := flag.String("catalog-db", "../../outputs/day3-5-results/data/day3-5-money.db", "read-only frozen catalog")
 	gp := flag.String("gate", "../../outputs/day3-live-results/data/gate-v1.json", "frozen gate")
@@ -41,10 +43,23 @@ func run() error {
 	if *stage == "export" {
 		return radarhistory.Export(ctx, *catalog, *gp, *db, *output)
 	}
-	store := &radarhistory.R2{Account: os.Getenv("CLOUDFLARE_ACCOUNT_ID"), Token: os.Getenv("CLOUDFLARE_API_TOKEN"), Bucket: *bucket}
-	if *stage == "bootstrap" {
-		if e := store.EnsureBucket(ctx); e != nil {
+	var store radarhistory.Store
+	if *backend == "github" {
+		s := &radarhistory.GitHub{Repo: *historyRepo, Token: os.Getenv("GITHUB_TOKEN")}
+		if e := s.CheckPrivate(ctx); e != nil {
 			return e
+		}
+		store = s
+	} else if *backend == "r2" {
+		store = &radarhistory.R2{Account: os.Getenv("CLOUDFLARE_ACCOUNT_ID"), Token: os.Getenv("CLOUDFLARE_API_TOKEN"), Bucket: *bucket}
+	} else {
+		return errors.New("unknown backend")
+	}
+	if *stage == "bootstrap" {
+		if r2, ok := store.(*radarhistory.R2); ok {
+			if e := r2.EnsureBucket(ctx); e != nil {
+				return e
+			}
 		}
 		str := ""
 		for i := 1; i <= 8; i++ {

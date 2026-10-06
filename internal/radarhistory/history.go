@@ -46,6 +46,43 @@ type Bundle struct {
 	Snapshots []radar.Snapshot `json:"snapshots"`
 	Events    []radar.Event    `json:"events"`
 }
+
+// Preserve original API bytes: RawMessage would otherwise be re-formatted by
+// JSON serialization and invalidate the observation's original raw_hash.
+type wireSnapshot struct {
+	Data radar.Snapshot
+	Raw  []byte
+}
+type wireBundle struct {
+	Manifest  Manifest
+	Snapshots []wireSnapshot
+	Events    []radar.Event
+}
+
+func (b Bundle) MarshalJSON() ([]byte, error) {
+	w := wireBundle{Manifest: b.Manifest, Events: b.Events}
+	for _, s := range b.Snapshots {
+		raw := append([]byte{}, s.Raw...)
+		s.Raw = nil
+		w.Snapshots = append(w.Snapshots, wireSnapshot{s, raw})
+	}
+	return json.Marshal(w)
+}
+func (b *Bundle) UnmarshalJSON(raw []byte) error {
+	var w wireBundle
+	if e := json.Unmarshal(raw, &w); e != nil {
+		return e
+	}
+	b.Manifest = w.Manifest
+	b.Events = w.Events
+	b.Snapshots = nil
+	for _, s := range w.Snapshots {
+		s.Data.Raw = append(json.RawMessage{}, s.Raw...)
+		b.Snapshots = append(b.Snapshots, s.Data)
+	}
+	return nil
+}
+
 type Pointer struct{ Key, Hash string }
 type Bootstrap struct {
 	Cohort []radar.Member
@@ -154,6 +191,32 @@ func Commit(ctx context.Context, s Store, b Bundle) error {
 	}
 	if b.Manifest.Status != "SUCCESS" {
 		return nil
+	}
+	old, e := s.Get(ctx, "latest-success.json")
+	if e != nil && !errors.Is(e, ErrNotFound) {
+		return e
+	}
+	if errors.Is(e, ErrNotFound) {
+		old = nil
+	}
+	if old != nil {
+		var pointer Pointer
+		if json.Unmarshal(old, &pointer) != nil {
+			return errors.New("invalid success pointer")
+		}
+		if pointer.Key == key && pointer.Hash == research.Hash(raw) {
+			return nil
+		}
+		if pointer.Key != b.Manifest.Previous {
+			return errors.New("stale previous history: good pointer preserved")
+		}
+	} else if b.Manifest.Previous != "" {
+		return errors.New("previous good pointer missing")
+	}
+	if cas, ok := s.(interface {
+		PutCAS(context.Context, string, []byte, []byte) error
+	}); ok {
+		return cas.PutCAS(ctx, "latest-success.json", attempt, old)
 	}
 	return s.Put(ctx, "latest-success.json", attempt, false)
 }
