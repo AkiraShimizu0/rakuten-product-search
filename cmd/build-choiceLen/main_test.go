@@ -26,6 +26,13 @@ func TestFrozenBuild(t *testing.T) {
 		if c[k] != v {
 			t.Fatal("unstable output")
 		}
+		published, err := os.ReadFile("../../site/" + k)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.ReplaceAll(string(published), "\r\n", "\n") != v {
+			t.Fatalf("committed site diverges from frozen build: %s", k)
+		}
 	}
 	page := a["articles/compact-air-purifier-placement/index.html"]
 	if strings.Contains(page, "未公開の準備稿") || !strings.Contains(page, articleURL) {

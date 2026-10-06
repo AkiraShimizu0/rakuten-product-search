@@ -5,6 +5,8 @@
 *.env
 *.exe
 /bin/
+/node_modules/
+/.wrangler/
 *.db
 *.db-wal
 *.db-shm

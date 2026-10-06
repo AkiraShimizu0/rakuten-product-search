@@ -1,0 +1,80 @@
+{
+  "affiliate_conversion": "unknown",
+  "affiliate_link_count": 0,
+  "affiliate_link_status": "AFFILIATE_LINK_NOT_CONFIGURED",
+  "analytics": "ANALYTICS_NOT_CONFIGURED",
+  "article_count": 1,
+  "baseline_commit": "226d4c68145b9bea7b2e484cfe9fffdfed6b5c35",
+  "canonical": "https://choicelen.page/articles/compact-air-purifier-placement/",
+  "claim_audit_basis": "existing Day 5 audit + Day 6 resolutions maintained; no new independent audit claimed",
+  "cloudflare_authentication": "success via repository Actions secrets",
+  "cloudflare_standard_statistics": "availability not independently checked; no tracking enabled",
+  "critical_detected": 0,
+  "decision": "GO_WITH_AFFILIATE_PENDING",
+  "deployment_run": "https://github.com/AkiraShimizu0/rakuten-product-search/actions/runs/37419696615",
+  "deployment_version": "9e2a5e51-6345-4320-8a87-07ff954a1409",
+  "disclosure": true,
+  "domain_evidence": {
+    "active_serving": true,
+    "checked_at": "2026-10-06T05:43:58Z",
+    "dns_zone_available": true,
+    "domain": "choicelen.page",
+    "nameservers": [
+      "igor.ns.cloudflare.com",
+      "sierra.ns.cloudflare.com"
+    ],
+    "registrar": "CloudFlare, Inc.",
+    "registrar_source": "https://pubapi.registry.google/rdap/domain/choicelen.page",
+    "registrar_status": [
+      "add period",
+      "client transfer prohibited"
+    ],
+    "workers_custom_domain": "attached in authorized account"
+  },
+  "git_commit": "5912ac07984fb36de000b78f1bb1bf285e643b29",
+  "home_url": "https://choicelen.page/",
+  "html_changes": [
+    "publication metadata only: draft status replaced with publication date",
+    "ChoiceLen homepage navigation",
+    "external responsive stylesheet"
+  ],
+  "http_status": 200,
+  "https_verified": true,
+  "indexable": true,
+  "indexed": "unknown",
+  "major_detected": 0,
+  "minor_resolutions": {
+    "removed": 2,
+    "resolved": 1
+  },
+  "mobile_render": "verified at 390x844; 16px body; tables scroll within wrappers; no document overflow",
+  "pr": "https://github.com/AkiraShimizu0/rakuten-product-search/pull/9",
+  "product_snapshot_recorded_at": "2026-10-06T05:43:58Z",
+  "publication_id": "day6-compact-placement-canary-v1",
+  "published": true,
+  "published_at": "2026-10-06T05:41:24Z",
+  "published_at_basis": "GitHub Actions Wrangler custom-domain publish completion",
+  "recorded_at": "2026-10-06T05:43:58Z",
+  "robots": "https://choicelen.page/robots.txt",
+  "search_console": "SEARCH_CONSOLE_NOT_CONFIGURED",
+  "sitemap": "https://choicelen.page/sitemap.xml",
+  "source_content_sha256": "8e19ebc91074cd36a772f915b0a91fc7199983d34bd50d2e0970df20d2e3424d",
+  "source_links": "3/3 HTTP 200 at 2026-10-06T05:27:05Z",
+  "source_markdown_unchanged": true,
+  "tests": [
+    "go test ./... passed locally and GitHub runner",
+    "go vet ./... passed locally and GitHub runner",
+    "git diff --check passed",
+    "Wrangler 4.147.0 deploy --dry-run passed",
+    "public HTTPS checks 6/6 passed"
+  ],
+  "timezone": "Asia/Tokyo",
+  "unresolved": [
+    "affiliate ID absent; no genuine affiliate links or conversion measurement",
+    "Search Console and analytics unavailable; all outcome metrics unknown",
+    "Sharp representative listing explicitly sold out",
+    "Core Mini unsupported conditions remain omitted"
+  ],
+  "url": "https://choicelen.page/articles/compact-air-purifier-placement/",
+  "worker_name": "choicelen-canary"
+}
