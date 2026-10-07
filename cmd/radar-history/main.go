@@ -174,6 +174,13 @@ func run() error {
 		if e != nil {
 			manifest.Failure++
 			fmt.Printf("Fetch %d/75 FAILED\n", i+1)
+			if i == 0 {
+				fmt.Println(e)
+			} // Rakuten client exposes only fixed, credential-safe errors.
+			if strings.Contains(e.Error(), "HTTP 401") || strings.Contains(e.Error(), "HTTP 403") || strings.Contains(e.Error(), "INVALID_ACCESS_KEY") {
+				manifest.Failure = len(cohort) - manifest.Success
+				break
+			}
 			continue
 		}
 		s := radar.Snapshot{Source: p.Source, SourceID: p.SourceID, ObservedAt: time.Now().UTC(), PageURL: p.ItemURL, ShopName: p.ShopName, Availability: "api_not_found", Raw: json.RawMessage(`{"items":[]}`)}

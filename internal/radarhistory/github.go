@@ -53,7 +53,7 @@ func (s *GitHub) request(ctx context.Context, method, key string, body []byte, r
 		if e == nil {
 			b, re := io.ReadAll(io.LimitReader(res.Body, 50<<20))
 			res.Body.Close()
-			if re == nil && res.StatusCode < 500 && res.StatusCode != 429 {
+			if re == nil && res.StatusCode < 500 && res.StatusCode != 429 && !(method == "PUT" && res.StatusCode == 409) {
 				return b, res.StatusCode, nil
 			}
 		}
