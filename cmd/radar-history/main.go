@@ -13,6 +13,7 @@ import (
 	"jev-money-engine/internal/rakuten"
 	"jev-money-engine/internal/research"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -24,7 +25,7 @@ func main() {
 	}
 }
 func run() error {
-	stage := flag.String("stage", "status", "export|bootstrap|run|status")
+	stage := flag.String("stage", "status", "export|bootstrap|run|status|dump")
 	backend := flag.String("backend", "r2", "r2|github (verified private repo)")
 	historyRepo := flag.String("history-repo", "AkiraShimizu0/choicelen-radar-history", "private canonical history repo")
 	bucket := flag.String("bucket", "choicelen-private-price-radar", "private R2 bucket")
@@ -107,7 +108,7 @@ func run() error {
 		fmt.Println(string(b))
 		return nil
 	}
-	if *stage != "run" {
+	if *stage != "run" && *stage != "dump" {
 		return errors.New("unknown history stage")
 	}
 	previous, key, e := radarhistory.Latest(ctx, store)
@@ -116,6 +117,22 @@ func run() error {
 	}
 	if key == "" {
 		return errors.New("remote bootstrap required")
+	}
+	if *stage == "dump" {
+		b, e := radarhistory.Encode(previous)
+		if e != nil {
+			return e
+		}
+		f, e := os.OpenFile(*output, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		if e != nil {
+			return e
+		}
+		_, e = f.Write(b)
+		ce := f.Close()
+		if e != nil {
+			return e
+		}
+		return ce
 	}
 	raw, e := store.Get(ctx, "cohort.json.gz")
 	if e != nil {
@@ -145,6 +162,11 @@ func run() error {
 		runid += "-" + id + "-" + os.Getenv("GITHUB_RUN_ATTEMPT")
 	}
 	manifest := radarhistory.Manifest{RunID: runid, StartedAt: now, Products: len(cohort), GitCommit: os.Getenv("GITHUB_SHA"), Previous: key}
+	if pin := os.Getenv("COLLECTOR_GIT_COMMIT"); pin != "" {
+		manifest.GitCommit = pin
+	} else if b, e := exec.Command("git", "rev-parse", "HEAD").Output(); e == nil {
+		manifest.GitCommit = strings.TrimSpace(string(b))
+	}
 	snapshots := []radar.Snapshot{}
 	for i, m := range cohort {
 		p := m.Product

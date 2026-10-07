@@ -23,6 +23,9 @@ type Checkpoint struct {
 }
 
 func Evaluate(ctx context.Context, old, out string, dry bool) error {
+	if e := Frozen(filepath.Join(old, "frozen-settings.json")); e != nil {
+		return e
+	}
 	base := filepath.Join(out, "data/sampling-validation")
 	var samples []discovery.Sample
 	if e := Load(filepath.Join(base, "samples.json"), &samples); e != nil {

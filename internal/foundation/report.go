@@ -6,7 +6,6 @@ import (
 	"jev-money-engine/internal/diversify"
 	"jev-money-engine/internal/filter"
 	"jev-money-engine/internal/gate"
-	"jev-money-engine/internal/llmjudge"
 	"jev-money-engine/internal/research"
 	"path/filepath"
 	"sort"
@@ -44,6 +43,33 @@ func Report(old, out string) error {
 		return e
 	}
 	if e := Load(filepath.Join(base, "evaluations.json"), &after); e != nil {
+		return e
+	}
+	var oldSamples, pools []discovery.Sample
+	if e := Load(filepath.Join(old, "samples.json"), &oldSamples); e != nil {
+		return e
+	}
+	if e := Load(filepath.Join(base, "pools.json"), &pools); e != nil {
+		return e
+	}
+	poolRows := [][]string{}
+	for _, method := range []struct {
+		name    string
+		samples []discovery.Sample
+	}{{"review-order", oldSamples}, {"price-pool", pools}} {
+		for _, s := range method.samples {
+			included := false
+			for _, c := range Categories {
+				included = included || c.ID == s.Category.ID
+			}
+			if !included {
+				continue
+			}
+			v := discovery.Statistics(s)
+			poolRows = append(poolRows, []string{s.Category.ID, s.Category.Name, method.name, fmt.Sprint(v.Collected), fmt.Sprint(v.Unique), fmt.Sprint(v.Eligible), research.F(v.EligibleRate), research.F(v.DuplicateRatio), fmt.Sprint(v.Families), research.F(v.LargestFamily), research.F(v.HHI), research.F(v.AccessoryProxy)})
+		}
+	}
+	if e := research.CSV(filepath.Join(base, "acquisition-comparison.csv"), []string{"category_id", "category", "method", "collected", "unique", "eligible", "eligible_rate", "duplicate_ratio", "families_proxy", "largest_share_proxy", "hhi_proxy", "accessory_proxy"}, poolRows); e != nil {
 		return e
 	}
 	g, e := gate.Read("../../outputs/day3-live-results/data/gate-v1.json")
@@ -139,5 +165,3 @@ func Report(old, out string) error {
 	}
 	return research.CSV(filepath.Join(base, "standard-order-failure-reasons.csv"), []string{"category_id", "category", "unique", "eligible", "low_reviews", "low_price", "short_description", "missing_fields", "accessory_title_proxy", "category_exclusion_reasons"}, fails)
 }
-
-var _ = llmjudge.Model
