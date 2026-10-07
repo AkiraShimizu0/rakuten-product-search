@@ -1,5 +1,15 @@
 # jev-money-engine
 
+## Foundation validation
+
+固定3カテゴリの検証と非公開価格履歴の運用方法:
+
+- [Family rulebook](docs/family-rulebook.md) / [Family検証結果](docs/family-resolver-validation.md)
+- [Sampling protocol](docs/sampling-validation-protocol.md) / [Sampling bias検証結果](docs/sampling-bias-validation.md)
+- [Price Radar履歴・認証・schedulerの制約](docs/price-radar-history.md)
+
+候補Family Resolver v2は実験専用で、本番へ置換していません。raw sample、gold label、API response、SQLite、秘密情報はGitへ保存しません。CLI flagsは `go run ./cmd/validate-foundation -h` と `go run ./cmd/radar-history -h` で確認できます。実験成果をChoiceLenへ自動公開しません。
+
 個人向けの商品候補収集・選別システム。Day 1は楽天の商品取得・SQLite保存・一次フィルタ、Day 2は既存候補のJev評価、Day 3は固定Jev GateとLLM reranker・blind AI reviewの比較実験です。Web UIや記事・SNS生成はありません。
 
 ## 必要な環境とセットアップ
