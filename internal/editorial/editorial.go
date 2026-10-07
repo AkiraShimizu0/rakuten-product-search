@@ -59,7 +59,7 @@ func shellHeader() string {
 	return `<a class="skip-link" href="#main">本文へ移動</a><header class="site-header"><div class="shell header-inner"><a class="wordmark" href="/" aria-label="ChoiceLen ホーム">ChoiceLen</a><nav aria-label="メインナビゲーション"><a href="/">記事一覧</a></nav></div></header>`
 }
 func shellFooter() string {
-	return `<footer class="site-footer"><div class="shell footer-inner"><a class="wordmark" href="/">ChoiceLen</a><p>説明書や仕様から、買う前に見るところを。</p><a href="/#advertising">広告について</a><small>© ChoiceLen</small></div></footer>`
+	return `<footer class="site-footer"><div class="shell footer-inner"><a class="wordmark" href="/">ChoiceLen</a><a href="/#advertising">広告について</a><small>© ChoiceLen</small></div></footer>`
 }
 func pageBody(s, body string) (string, error) {
 	re := regexp.MustCompile(`(?s)<body>.*</body>`)
