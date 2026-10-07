@@ -2,7 +2,7 @@ name: ChoiceLen authorized canary deploy
 on:
   workflow_dispatch:
   push:
-    branches: [day6-1-production-publication, choicelen-editorial-design-v1, choicelen-human-editorial-v2, choicelen-typography-layout-reset]
+    branches: [day6-1-production-publication, choicelen-editorial-design-v1, choicelen-human-editorial-v2, choicelen-typography-layout-reset, choicelen-home-brand-dedup]
 permissions:
   contents: read
 concurrency:

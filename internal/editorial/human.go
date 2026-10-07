@@ -48,6 +48,12 @@ func HumanArticle(s, date string) (string, error) {
 }
 
 func HumanHome(s, title, date string) (string, error) {
-	body := `<main id="main" class="home-main"><section class="home-intro"><h1>ChoiceLen</h1><p>メーカーの取扱説明書や仕様を読み比べ、購入前に確認したいことを整理しています。</p></section><section id="guides" class="one-guide"><h2>記事一覧</h2><article><h3><a href="` + Slug + `">` + html.EscapeString(title) + `</a></h3><time datetime="` + date + `">` + strings.ReplaceAll(date, "-", ".") + `</time></article></section><section id="advertising" class="home-ad"><h2>広告について</h2><p class="disclosure">当ページにはアフィリエイト広告を利用したリンクが含まれます。</p><p>記事内の広告リンクは、判断材料と分けて表示しています。</p></section></main>`
-	return pageBody(s, body)
+	body := `<main id="main" class="home-main"><div class="home-intro"><p>メーカーの取扱説明書や仕様を読み比べ、購入前に確認したいことを整理しています。</p></div><section id="guides" class="one-guide"><h1>記事一覧</h1><article><h2><a href="` + Slug + `">` + html.EscapeString(title) + `</a></h2><time datetime="` + date + `">` + strings.ReplaceAll(date, "-", ".") + `</time></article></section><section id="advertising" class="home-ad"><h2>広告について</h2><p class="disclosure">当ページにはアフィリエイト広告を利用したリンクが含まれます。</p><p>記事内の広告リンクは、判断材料と分けて表示しています。</p></section></main>`
+	page, err := pageBody(s, body)
+	if err != nil {
+		return "", err
+	}
+	// The short home page exposes its footer in the first viewport.
+	// Keep branding only in the header, without adding space to hide duplicates.
+	return strings.Replace(page, shellFooter(), `<footer class="site-footer"><div class="shell footer-inner"><a href="/#advertising">広告について</a><small>© 2026</small></div></footer>`, 1), nil
 }
