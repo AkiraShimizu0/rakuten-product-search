@@ -25,7 +25,7 @@ func main() {
 	}
 }
 func run() error {
-	stage := flag.String("stage", "status", "export|bootstrap|run|status|dump|scheduled")
+	stage := flag.String("stage", "status", "export|bootstrap|run|status|dump|scheduled|facts")
 	ghPath := flag.String("gh-path", "gh", "existing authenticated GitHub CLI (scheduled mode only)")
 	collectorCommit := flag.String("collector-commit", "", "pinned source commit for a compiled scheduled collector")
 	backend := flag.String("backend", "r2", "r2|github (verified private repo)")
@@ -45,6 +45,28 @@ func run() error {
 	}
 	if *stage == "export" {
 		return radarhistory.Export(ctx, *catalog, *gp, *db, *output)
+	}
+	if *stage == "facts" {
+		b, e := os.ReadFile(*output)
+		if e != nil {
+			return e
+		}
+		var bundle radarhistory.Bundle
+		if e = radarhistory.Decode(b, &bundle); e != nil {
+			return e
+		}
+		if e = radarhistory.Validate(bundle); e != nil {
+			return e
+		}
+		v, e := json.MarshalIndent(struct {
+			Manifest radarhistory.Manifest
+			Events   []radar.Event
+		}{bundle.Manifest, bundle.Events}, "", "  ")
+		if e != nil {
+			return e
+		}
+		fmt.Println(string(v))
+		return nil
 	}
 	token := os.Getenv("GITHUB_TOKEN")
 	if *stage == "scheduled" {

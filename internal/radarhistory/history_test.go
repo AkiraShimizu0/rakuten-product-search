@@ -3,7 +3,9 @@ package radarhistory
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"io"
 	"jev-money-engine/internal/radar"
 	"jev-money-engine/internal/research"
 	"net/http"
@@ -15,6 +17,101 @@ import (
 type memStore struct {
 	v    map[string][]byte
 	fail bool
+}
+
+func TestOriginalRawBytesRoundTrip(t *testing.T) {
+	s := snap(time.Date(2026, 10, 7, 0, 0, 0, 0, time.UTC), 10000)
+	s.Raw = json.RawMessage("{ \n  \"itemPrice\": 10000, \"name\": \"商品\" }")
+	s.RawHash = research.Hash(s.Raw)
+	b, e := Build(context.Background(), Bundle{}, Manifest{RunID: "raw", StartedAt: s.ObservedAt, Products: 1, Success: 1}, []radar.Snapshot{s})
+	if e != nil {
+		t.Fatal(e)
+	}
+	encoded, e := Encode(b)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var got Bundle
+	if e = Decode(encoded, &got); e != nil {
+		t.Fatal(e)
+	}
+	if !bytes.Equal(got.Snapshots[0].Raw, s.Raw) {
+		t.Fatal("original API bytes changed")
+	}
+	if e = Validate(got); e != nil {
+		t.Fatal(e)
+	}
+}
+
+func TestGitHubPrivateAppendReadAndCAS(t *testing.T) {
+	objects := map[string][]byte{}
+	private := true
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test" {
+			t.Error("missing auth")
+		}
+		if r.URL.Path == "/repos/owner/history" {
+			json.NewEncoder(w).Encode(map[string]bool{"private": private})
+			return
+		}
+		key := r.URL.Path
+		old, exists := objects[key]
+		if r.Method == "GET" {
+			if !exists {
+				w.WriteHeader(404)
+				return
+			}
+			if r.Header.Get("Accept") == "application/vnd.github.raw+json" {
+				w.Write(old)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]string{"sha": research.Hash(old)})
+			return
+		}
+		body, _ := io.ReadAll(r.Body)
+		var p map[string]string
+		json.Unmarshal(body, &p)
+		if exists && p["sha"] != research.Hash(old) {
+			w.WriteHeader(422)
+			return
+		}
+		b, e := base64.StdEncoding.DecodeString(p["content"])
+		if e != nil {
+			t.Error(e)
+		}
+		objects[key] = b
+		w.WriteHeader(201)
+	}))
+	defer server.Close()
+	s := &GitHub{Repo: "owner/history", Token: "test", Base: server.URL}
+	ctx := context.Background()
+	if e := s.CheckPrivate(ctx); e != nil {
+		t.Fatal(e)
+	}
+	private = false
+	if e := s.CheckPrivate(ctx); e == nil {
+		t.Fatal("public history accepted")
+	}
+	private = true
+	if e := s.Put(ctx, "runs/one", []byte("original"), true); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.Put(ctx, "runs/one", []byte("modified"), true); e == nil {
+		t.Fatal("immutable overwrite")
+	}
+	got, e := s.Get(ctx, "runs/one")
+	if e != nil || string(got) != "original" {
+		t.Fatal(e, string(got))
+	}
+	if e := s.PutCAS(ctx, "latest", []byte("one"), nil); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.PutCAS(ctx, "latest", []byte("two"), []byte("stale")); e == nil {
+		t.Fatal("stale pointer accepted")
+	}
+	if e := s.PutCAS(ctx, "latest", []byte("two"), []byte("one")); e != nil {
+		t.Fatal(e)
+	}
 }
 
 func (s *memStore) Get(_ context.Context, k string) ([]byte, error) {

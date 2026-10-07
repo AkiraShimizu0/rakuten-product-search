@@ -70,6 +70,7 @@ func FamilyReport(out string) error {
 	result := [][]string{}
 	errorsOut := [][]string{}
 	metrics := [][]string{}
+	allMetrics := map[string][]PairMetrics{}
 	v2metrics, v2rows := [][]string{}, [][]string{}
 	for _, cat := range Categories {
 		subset := []map[string]string{}
@@ -102,20 +103,46 @@ func FamilyReport(out string) error {
 		}
 		m := Pairwise(g, p)
 		mv := Pairwise(g, v2)
+		allMetrics["baseline"] = append(allMetrics["baseline"], m)
+		allMetrics["v2"] = append(allMetrics["v2"], mv)
 		v2metrics = append(v2metrics, []string{cat.Name, fmt.Sprint(mv.N), research.F(mv.Precision), research.F(mv.Recall), research.F(mv.F1), fmt.Sprint(mv.FP), fmt.Sprint(mv.FN), fmt.Sprint(mv.Exact), fmt.Sprint(mv.Available)})
 		metrics = append(metrics, []string{cat.Name, fmt.Sprint(m.N), research.F(m.Precision), research.F(m.Recall), research.F(m.F1), fmt.Sprint(m.FP), fmt.Sprint(m.FN), fmt.Sprint(m.Exact), fmt.Sprint(m.Available)})
-		for i := range g {
-			for j := i + 1; j < len(g); j++ {
-				if (g[i] == g[j]) == (p[i] == p[j]) {
-					continue
+		for _, method := range []struct {
+			name   string
+			values []string
+		}{{"baseline", p}, {"v2", v2}} {
+			for i := range g {
+				for j := i + 1; j < len(g); j++ {
+					if (g[i] == g[j]) == (method.values[i] == method.values[j]) {
+						continue
+					}
+					kind := "false_split"
+					if method.values[i] == method.values[j] {
+						kind = "false_merge"
+					}
+					errorsOut = append(errorsOut, []string{method.name, cat.Name, kind, valid[i]["source_id"], valid[j]["source_id"], valid[i]["title"], valid[j]["title"]})
 				}
-				kind := "false_split"
-				if p[i] == p[j] {
-					kind = "false_merge"
-				}
-				errorsOut = append(errorsOut, []string{cat.Name, kind, valid[i]["source_id"], valid[j]["source_id"], valid[i]["title"], valid[j]["title"]})
 			}
 		}
+	}
+	macro := [][]string{}
+	for _, method := range []string{"baseline", "v2"} {
+		precision, recall, f1 := 0., 0., 0.
+		n, fp, fn, exact := 0, 0, 0, 0
+		for _, m := range allMetrics[method] {
+			precision += m.Precision
+			recall += m.Recall
+			f1 += m.F1
+			n += m.N
+			fp += m.FP
+			fn += m.FN
+			exact += m.Exact
+		}
+		k := float64(len(allMetrics[method]))
+		macro = append(macro, []string{method, fmt.Sprint(n), research.F(precision / k), research.F(recall / k), research.F(f1 / k), fmt.Sprint(fp), fmt.Sprint(fn), fmt.Sprint(exact)})
+	}
+	if e = research.CSV(filepath.Join(base, "macro-metrics.csv"), []string{"method", "n", "macro_precision", "macro_recall", "macro_f1", "false_merge_pairs", "false_split_pairs", "exact_items"}, macro); e != nil {
+		return e
 	}
 	if e = research.CSV(filepath.Join(base, "v2-results.csv"), []string{"category_id", "source_id", "gold_family_id", "v2_family_id", "title"}, v2rows); e != nil {
 		return e
@@ -127,7 +154,7 @@ func FamilyReport(out string) error {
 		name string
 		head []string
 		rows [][]string
-	}{{"baseline-results.csv", []string{"category_id", "source_id", "gold_family_id", "baseline_family_id", "title"}, result}, {"baseline-metrics.csv", []string{"category", "n", "precision", "recall", "f1", "false_merge_pairs", "false_split_pairs", "exact_items", "recall_available"}, metrics}, {"error-cases.csv", []string{"category", "error_type", "source_id_a", "source_id_b", "title_a", "title_b"}, errorsOut}} {
+	}{{"baseline-results.csv", []string{"category_id", "source_id", "gold_family_id", "baseline_family_id", "title"}, result}, {"baseline-metrics.csv", []string{"category", "n", "precision", "recall", "f1", "false_merge_pairs", "false_split_pairs", "exact_items", "recall_available"}, metrics}, {"error-cases.csv", []string{"method", "category", "error_type", "source_id_a", "source_id_b", "title_a", "title_b"}, errorsOut}} {
 		if e = research.CSV(filepath.Join(base, w.name), w.head, w.rows); e != nil {
 			return e
 		}
