@@ -50,6 +50,8 @@ func New(cfg Config) (*Client, error) {
 type Query struct {
 	GenreID, Keyword, Sort, ItemCode string
 	AllOffers                        bool
+	MinPrice, MaxPrice               int64
+	HasReview                        bool
 }
 type Page struct {
 	Items     []json.RawMessage `json:"items"`
@@ -91,6 +93,15 @@ func (c *Client) SearchPage(ctx context.Context, q Query, page int) (Page, error
 	}
 	if q.Sort != "" {
 		params.Set("sort", q.Sort)
+	}
+	if q.MinPrice > 0 {
+		params.Set("minPrice", strconv.FormatInt(q.MinPrice, 10))
+	}
+	if q.MaxPrice > 0 {
+		params.Set("maxPrice", strconv.FormatInt(q.MaxPrice, 10))
+	}
+	if q.HasReview {
+		params.Set("hasReviewFlag", "1")
 	}
 	if c.cfg.AffiliateID != "" {
 		params.Set("affiliateId", c.cfg.AffiliateID)
