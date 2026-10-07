@@ -48,6 +48,6 @@ func HumanArticle(s, date string) (string, error) {
 }
 
 func HumanHome(s, title, date string) (string, error) {
-	body := `<main id="main" class="home-main"><section class="home-intro"><h1>ChoiceLen</h1><p>買う前に、仕様をちゃんと見る。</p></section><section id="guides" class="one-guide"><p class="section-label">最新記事</p><article><div><h2><a href="` + Slug + `">` + html.EscapeString(title) + `</a></h2><p>本体が入る。その先の、空気の通り道と手入れまで。</p><time datetime="` + date + `">` + strings.ReplaceAll(date, "-", ".") + `</time><p><a href="` + Slug + `">記事を読む →</a></p></div><figure>` + PlacementDiagram("home-placement") + `<figcaption>置き場所を見るための概念図。必要距離・実機形状を示すものではありません。</figcaption></figure></article></section><section id="policy" class="about"><h2>ChoiceLenについて</h2><p>メーカーの取扱説明書や仕様を読み比べ、購入前に確認したいことを整理しています。</p></section><section id="advertising" class="home-ad"><h2>広告について</h2><p class="disclosure">当ページにはアフィリエイト広告を利用したリンクが含まれます。</p><p>記事内の広告リンクは、判断材料と分けて表示しています。</p></section></main>`
+	body := `<main id="main" class="home-main"><section class="home-intro"><h1>ChoiceLen</h1><p>メーカーの取扱説明書や仕様を読み比べ、購入前に確認したいことを整理しています。</p></section><section id="guides" class="one-guide"><h2>記事一覧</h2><article><h3><a href="` + Slug + `">` + html.EscapeString(title) + `</a></h3><time datetime="` + date + `">` + strings.ReplaceAll(date, "-", ".") + `</time></article></section><section id="advertising" class="home-ad"><h2>広告について</h2><p class="disclosure">当ページにはアフィリエイト広告を利用したリンクが含まれます。</p><p>記事内の広告リンクは、判断材料と分けて表示しています。</p></section></main>`
 	return pageBody(s, body)
 }
