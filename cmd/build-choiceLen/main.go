@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"jev-money-engine/internal/canary"
+	"jev-money-engine/internal/editorial"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -43,6 +44,22 @@ func build(md, date string) (map[string]string, error) {
 	}
 	home := `<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ChoiceLen — 商品選びの判断材料</title><meta name="description" content="メーカー公式情報や仕様を整理し、商品を選ぶときの判断材料をまとめるサイト。"><link rel="canonical" href="https://choicelen.page/"><link rel="stylesheet" href="/assets/site.css"></head><body><main><h1>ChoiceLen</h1><p>ChoiceLenは、メーカー公式情報や仕様を整理し、商品を選ぶときの判断材料を分かりやすくまとめるサイトです。</p><p>` + canary.Disclosure + `</p><h2>記事一覧</h2><p><a href="/articles/compact-air-purifier-placement/">小型空気清浄機はどこに置く？机・床・棚を選ぶための条件表</a></p><h2>運営方針</h2><p>一次資料の条件と不明点を区別し、購入前に確認できる判断表を提供します。実機テストを行っていない内容を使用体験として紹介しません。価格や在庫は変動するため、購入前に販売ページをご確認ください。</p><h2>広告について</h2><p>現在、実アフィリエイトリンクは未設定です。将来掲載する際は広告リンクを明示し、判断材料と広告を区別します。</p></main></body></html>`
 	home = strings.Replace(home, "現在、実アフィリエイトリンクは未設定です。将来掲載する際は広告リンクを明示し、判断材料と広告を区別します。", "記事内の広告・アフィリエイトリンクを明示し、判断材料と広告を区別します。", 1)
+	article, err = editorial.Article(article, date)
+	if err != nil {
+		return nil, err
+	}
+	home, err = editorial.Home(home, "小型空気清浄機はどこに置く？机・床・棚を選ぶための条件表", date)
+	if err != nil {
+		return nil, err
+	}
+	if err = canary.Check(article, articleURL); err != nil {
+		return nil, err
+	}
+	styles = editorial.CSS
+	notFound, err := editorial.NotFound(`<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ページが見つかりません | ChoiceLen</title><link rel="stylesheet" href="/assets/site.css"></head><body></body></html>`)
+	if err != nil {
+		return nil, err
+	}
 	if err = canary.Check(home, "https://choicelen.page/"); err != nil {
 		return nil, err
 	}
@@ -50,7 +67,7 @@ func build(md, date string) (map[string]string, error) {
 		"index.html": home,
 		"articles/compact-air-purifier-placement/index.html": article,
 		"assets/site.css": styles,
-		"404.html":        `<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ページが見つかりません | ChoiceLen</title><link rel="stylesheet" href="/assets/site.css"></head><body><main><h1>ページが見つかりません</h1><p><a href="/">ChoiceLenのトップへ</a></p></main></body></html>`,
+		"404.html":        notFound,
 		"robots.txt":      "User-agent: *\nAllow: /\nSitemap: https://choicelen.page/sitemap.xml\n",
 		"sitemap.xml":     `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://choicelen.page/</loc><lastmod>` + date + `</lastmod></url><url><loc>` + articleURL + `</loc><lastmod>` + date + `</lastmod></url></urlset>`,
 	}, nil

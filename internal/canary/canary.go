@@ -130,7 +130,10 @@ func Check(s, canonical string) error {
 			}
 		}
 		if strings.Contains(m, `href="#`) {
-			return fmt.Errorf("unvalidated internal anchor")
+			match := regexp.MustCompile(`href="#([^"]+)"`).FindStringSubmatch(m)
+			if len(match) != 2 || !strings.Contains(s, `id="`+match[1]+`"`) {
+				return fmt.Errorf("unvalidated internal anchor")
+			}
 		}
 	}
 	return nil
