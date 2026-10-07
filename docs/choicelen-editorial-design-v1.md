@@ -43,3 +43,11 @@ Tests cover original prose sentence retention, exact external destinations, meta
 Deployment uses the existing pinned Wrangler/Workers Static Assets configuration and credentials. The existing workflow accepts this branch only on manual dispatch or an explicit `[deploy-choicelen]` marker. Ordinary subsequent log/doc commits do not deploy. Production timestamps, code SHA, actual HTTP/TLS checks, analytics/mobile evidence and measurement caveat are recorded after deployment in a separate log. D+7 traffic differences must not be attributed causally to this design change.
 
 Unresolved: actual usability research, assistive-technology user testing, iOS hardware behavior and business effects are unmeasured. The original Core Mini evidence limitations remain. No claims of increased trust, CTR, ranking or revenue are made from visual QA alone.
+
+## Production result
+
+Deployment succeeded at **2026-10-07 15:39:03 JST**, source commit `2aa37749768a81cdfd238dd8b1039f8413dcf4d8`, [workflow run](https://github.com/AkiraShimizu0/rakuten-product-search/actions/runs/37582593151). HTTP 200 and verified HTTPS for home/article/CSS/robots/sitemap; unknown page returns 404. Canonical/indexability and the three source HTTP 200 checks passed. Browser production Mobile has no page overflow, valid anchors and one sponsored affiliate link. Existing Cloudflare beacon and its original configuration token are preserved; analytics counts are not analyzed.
+
+CSS grew from about 826 to 8,390 bytes, article HTML from about 9,031 to 14,845 bytes (uncompressed local snapshots). No additional network asset, executable JS, image or webfont was added. This is a small static payload increase; no measured speed improvement is claimed. Body/link/muted contrast on the paper background measured 12.91 / 7.16 / 5.20 respectively in the browser.
+
+The append-only [measurement log](measurement-log.jsonl) records this visual/information-hierarchy change, original evidence/publication dates and D+7 causal caveat. Production before/after screenshots, preview details and machine-readable browser/HTTP evidence remain outside Git. The site still contains one article.
