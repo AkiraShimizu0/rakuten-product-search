@@ -25,7 +25,9 @@ func main() {
 	}
 }
 func run() error {
-	stage := flag.String("stage", "status", "export|bootstrap|run|status|dump")
+	stage := flag.String("stage", "status", "export|bootstrap|run|status|dump|scheduled")
+	ghPath := flag.String("gh-path", "gh", "existing authenticated GitHub CLI (scheduled mode only)")
+	collectorCommit := flag.String("collector-commit", "", "pinned source commit for a compiled scheduled collector")
 	backend := flag.String("backend", "r2", "r2|github (verified private repo)")
 	historyRepo := flag.String("history-repo", "AkiraShimizu0/choicelen-radar-history", "private canonical history repo")
 	bucket := flag.String("bucket", "choicelen-private-price-radar", "private R2 bucket")
@@ -44,9 +46,20 @@ func run() error {
 	if *stage == "export" {
 		return radarhistory.Export(ctx, *catalog, *gp, *db, *output)
 	}
+	token := os.Getenv("GITHUB_TOKEN")
+	if *stage == "scheduled" {
+		if token == "" {
+			b, e := exec.Command(*ghPath, "auth", "token").Output()
+			if e != nil {
+				return errors.New("existing GitHub CLI authorization required")
+			}
+			token = strings.TrimSpace(string(b))
+		}
+		*stage = "run"
+	}
 	var store radarhistory.Store
 	if *backend == "github" {
-		s := &radarhistory.GitHub{Repo: *historyRepo, Token: os.Getenv("GITHUB_TOKEN")}
+		s := &radarhistory.GitHub{Repo: *historyRepo, Token: token}
 		if e := s.CheckPrivate(ctx); e != nil {
 			return e
 		}
@@ -166,6 +179,9 @@ func run() error {
 		manifest.GitCommit = pin
 	} else if b, e := exec.Command("git", "rev-parse", "HEAD").Output(); e == nil {
 		manifest.GitCommit = strings.TrimSpace(string(b))
+	}
+	if *collectorCommit != "" {
+		manifest.GitCommit = *collectorCommit
 	}
 	snapshots := []radar.Snapshot{}
 	for i, m := range cohort {
