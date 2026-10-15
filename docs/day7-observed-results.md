@@ -341,3 +341,11 @@ D+7固定windowへ自動編入せず、期間確認までは固定windowの楽�
 指定した10/6–10/12の集計ではないため、D+7固定windowの楽天値はunknownのまま保持する。30日間0を指定期間の正式0に置換しない。以前の期間未確認記録は履歴として残す。サービスUI制約によるwindow不一致であり、それ自体でDATA_PIPELINE_ISSUEとは判定しない。追加の手動操作は要求せず、取得可能データの記録はここで停止する。
 
 最終取得状態: Google/Cloudflare/Radarは取得済み、楽天は30日間のユーザー報告のみ。NO SEO PROFITABILITY DECISION。現在indexing問題は確認されず、全測定経路の確認を要するCONTINUEの最終確定は保留。公開・SEO施策・scheduler変更なし。
+
+## 楽天正式CSVの確認（monthly.csv）
+
+ユーザー提供の期間別CSVを読み取り。report label="期間別成果: 2026.10"。列は発生日/成果報酬/クリック数/売上件数/売上金額、英語列date/rewards/clicks/sales/amountも含むが、日別data rowは0件。
+
+availability=EMPTY_EXPORT、actual window=2026年10月という月ラベルのみ（正確な抽出終端・timezone・latest available date・reporting delayはunknown）。データ行がないことを日別0や確定報酬0と解釈しない。成果報酬列と確定報酬を混同しない。D+7指定期間のclicks/orders/commissionはunknownを維持。前回のスクリーンショットでは30日間サマリのclicks=0、売上件数=0、未確定成果報酬=0円を視認できるが、期間と確定状態を別扱いとする。
+
+原本はユーザーDownloadsに保持し、CSV全文はrepositoryへcommitしない。追加の再ダウンロードは要求しない。取得可能範囲の評価は完了し、NO SEO PROFITABILITY DECISION、全measurement operationalに基づく最終CONTINUEは楽天固定window確認不足で保留。本番変更なし。
