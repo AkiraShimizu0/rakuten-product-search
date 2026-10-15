@@ -31,3 +31,68 @@ GitHub Radar: 既存gh credential storeからmemoryへ読み込み、private job
 
 ## Limits
 Windows停止時の欠測、IP/credential expiry、private cumulative bundlesの長期肥大化に注意。D+7は別protocolで観測し、0とunknownを区別。定期運用の成功を統合テストだけで保証しない。
+
+## D+7 / D+14 / D+28 observer
+
+CLI: go run ./cmd/observe-choiceLen -from 2026-10-06 -to 2026-10-12 -out outputs/day7-api-run-NEW
+Default source=all。-source gsc/cloudflare/radar/rakuten、またはcomma-separated。-dry-runはnetwork/credential/output accessなし。再実行は必ず新しい出力directory。固定windowの-defaultはD+7、D+14等では-from/-toと-window-start/-window-endの両方を明示。-propertyは実際に認可されたexact propertyを使う。今回の既存Domain property既定はsc-domain:choicelen.page、URL-prefixならhttps://choicelen.page/。架空のpropertyへ切り替えない。
+
+### Google authentication (AUTHORIZATION_REQUIRED if absent)
+
+公式Search Console APIを有効化したGoogle Cloud projectのDesktop OAuth clientを用意し、本人がGoogle公式consentでread-only承認。https://console.cloud.google.com/apis/credentials
+必要scopeは https://www.googleapis.com/auth/webmasters.readonly のみ。URL Inspection・Search Analytics・sitemaps getに共用。Search Console propertyへの既存アクセスも必要。書き込みscope/webmastersは不要。
+
+Google Cloud CLIを使用する場合:
+gcloud auth application-default login --client-id-file <private-desktop-client.json> --scopes=https://www.googleapis.com/auth/webmasters.readonly
+本人が表示された公式認証URLを開いて承認。OAuth client/refresh tokenをチャットへ貼らない。自動ブラウザ操作・cookie抽出は行わない。
+生成されたauthorized_user ADCをGOOGLE_APPLICATION_CREDENTIALSで指定、またはWindowsの標準 %APPDATA%/gcloud/application_default_credentials.json。credential fileはrepository外のprivate pathで保管。
+observerはauthorized_user ADC refreshと専用process env CHOICELEN_GOOGLE_ACCESS_TOKENに対応。service_account/workload identityは現時点で未対応。tokenはこのscopeだけで発行したものを使う。scopeを指定してrefreshするが、過去に広いscopeを付与したcredentialを流用しない。
+
+### Cloudflare authentication
+
+https://dash.cloudflare.com/profile/api-tokens で本人が最小read-only tokenを作成し、対象accountのAnalytics Read相当だけを許可。deploy tokenは利用禁止。
+専用の CHOICELEN_CF_ANALYTICS_TOKEN と CHOICELEN_CF_ACCOUNT_ID をignored observer.envまたはprocess envへ保存。既存CLOUDFLARE_API_TOKENへのfallbackは実装しない。-env-fileは明示時のみ読み込む。
+公式RUM dataset rumPageloadEventsAdaptiveGroupsがWeb Analyticsに対応。認証後にschema introspectionを行い、count/requestPath/refererHostとtime/host filterを検証。sum.visitsがschemaにない場合はunknown。
+schema/権限/planで取れなければCLOUDFLARE_WEB_ANALYTICS_API_UNAVAILABLEとしてmanual exportを継続。Zone HTTP requestsをpage viewsへ置換しない。schemaが確認できてもretention/query-range制限で過去日が取得不能な場合があり、empty totalを0と推定しない。
+current pipelineはlive accountで未認証。実schema・dataset権限は初回接続で確認が必要。
+
+### Read-only Radar
+
+-gh-auth -gh-path "C:/Program Files/GitHub CLI/gh.exe" で既存認証をmemory内だけに読み込む。private repo/read-only GETのみ。既存canonical bundlesをhash検証し、run一覧とlatest-successを取得。scheduler/run/refreshは起動しない。
+windowは開始inclusive、終了exclusive。expected slotsは09:07 JSTの日次機会、attemptsには手動/diagnosticも含むためscheduler成功数とは同義ではない。起動直後にremoteへ到達せず終了したrunはcanonical一覧だけでは検出不能。
+import manifestはattemptから除外。snapshots/eventsはobserved_atで切り出す。candidateは閾値該当event数であり、unique商品数/ランキングcap後の数とは別。current manifestを別欄に保持。
+
+### Manual inputs / provenance
+
+-gsc-manual-zip <private-export.zip> で既存正式exportを保存・APIと対比。CONFIRMEDは同じwindow/値が一致した場合だけで、query suppressionやAPI webとmanual text-basedのsource差を消さない。既存manual=表示1/クリック0を上書きしない。
+-rakuten-report <private-report.csv>。楽天市場アフィリエイト公式の公開reporting APIは確認できていない。Rakuten Advertising/LinkShareのAPIを別accountへ流用しない。
+UTF-8/Shift-JIS CSV、recognized columns: period/期間/日付、clicks/クリック数、orders/注文件数/売上件数、commission_jpy/成果報酬/成果報酬(円)、status/状態。公式CSVが異なるheader/preambleなら匿名最小sampleでadapterを追加する。対応未確認の形式を黙って推定しない。
+CSVは日別か合計の一方だけ、重複しない単位で用意。metric欠損はunknown、CSVなしもunknown、明示0だけzero。periodはrowに保持、異なる期間を固定D+7へ自動合算しない。scopeはaccount_aggregate。報酬statusや反映遅延、timezoneがCSVにない場合はunknown。
+CSVの不要なaccount/personal columnsをoutputへ持ち込まない。
+
+### Output / report / security
+
+出力observation.jsonにrequested/actual window、timezone、granularity、checked_at、latest_available_date、reporting_delay、known/zero/unknown/delayed/unavailableを保存。取得範囲の最終日をサービスの最新反映日と同一視しない。APIのmetadata.first_incomplete_dateを保存し、欠落日の0補完は禁止。
+-health <prior-day6-http-check.json> で取得済みtechnical検証を再利用。-append-report docs/day7-observed-results.md は既存docへ追記のみ。browser safety historyとmanual値は残る。判定は不足時pending。auth不足をproductionのDATA_PIPELINE_ISSUEと断定しない。
+observation.jsonはignored outputsへ。public PRにはコード/匿名fixture/要約だけ。raw response/header/Authorization/OAuth credentialをlog保存しない。HTTP診断はstatusのみ。401/403はretryしない。429/5xx/transportは最大2retryのexponential backoff。redirectを追わずtoken転送を防ぐ。
+WriteNewとnew-directory拒否で既存outputを保護。再取得は-sourceで限定し、異なるwindowのobservationを無条件mergeしない。
+
+公式資料確認日2026-10-15:
+- https://developers.google.com/webmaster-tools/v1/searchanalytics/query
+- https://developers.google.com/webmaster-tools/v1/urlInspection.index/inspect
+- https://developers.google.com/webmaster-tools/v1/sitemaps/get
+- https://developers.google.com/webmaster-tools/v1/sitemaps (contents.indexed deprecated、submittedは送信URL数)
+- https://cloud.google.com/docs/authentication/application-default-credentials
+- https://developers.cloudflare.com/data-localization/metadata-boundary/graphql-datasets/
+- https://developers.cloudflare.com/analytics/graphql-api/features/discovery/introspection/
+- https://developers.cloudflare.com/analytics/graphql-api/getting-started/authentication/api-token-auth/
+- https://affiliate.rakuten.co.jp/guides/report/
+
+### Google初回認証（Google Cloud CLI不要）
+go run ./cmd/auth-choiceLen -client <private-downloaded-desktop-client.json> -out ../observer-google-adc.json
+本人が表示された127.0.0.1の入口を同じPCの通常ブラウザで開く。Google公式consentのSearch Console read-onlyだけを承認。PKCE S256/state、random IPv4 loopback port、15分timeoutを使用。既存ADCは上書きしない。serverは承認完了後に終了する。ブラウザ自動操作は行わない。
+refresh token/client secret/認証codeはログへ出力しない。生成されたauthorized_user ADCのpathをGOOGLE_APPLICATION_CREDENTIALSで指定してobserverを再開。元のdownloaded Desktop JSONをADCとして直接指定しない。
+
+### 保存済み取得結果のoffline統合
+
+observe-choiceLenの-source none -reuse <observation1.json>,<observation2.json> -out <new-private-directory>で再API呼び出しなしに統合できる。同一protocol/requested windowだけを受理し、同じsourceは後のファイルを採用する。各サービスのactual windowと元checked_atは保持され、異なるtimezoneの数値を同一windowとみなさない。outは既存directoryの上書きを拒否する。最終判断のため楽天正式report未取得をunknownとして残す。
