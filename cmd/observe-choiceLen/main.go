@@ -87,7 +87,7 @@ func run() error {
 	if e := os.MkdirAll(*out, 0700); e != nil {
 		return e
 	}
-	o := observer.Observation{Protocol: "day7-v1", Requested: observer.Window{*start, *end, "Asia/Tokyo", "instant; exclusive upper bound"}, Sources: map[string]observer.Source{}}
+	o := observer.Observation{Protocol: "day7-v1", Requested: observer.Window{From: *start, To: *end, Timezone: "Asia/Tokyo", Granularity: "instant; exclusive upper bound"}, Sources: map[string]observer.Source{}}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	c := observer.NewClient()
@@ -95,7 +95,7 @@ func run() error {
 		token, e := observer.GoogleToken(ctx, c)
 		if e != nil {
 			for _, k := range []string{"search_console", "url_inspection", "sitemap"} {
-				s := observer.NewSource("Google Search Console official API", observer.Window{*from, *to, "America/Los_Angeles", "daily (inspection/sitemap would be current)"})
+				s := observer.NewSource("Google Search Console official API", observer.Window{From: *from, To: *to, Timezone: "America/Los_Angeles", Granularity: "daily (inspection/sitemap would be current)"})
 				s.Reason = e.Error()
 				o.Sources[k] = s
 			}
