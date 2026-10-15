@@ -3,7 +3,7 @@
 ## Protocol
 day7-v1、固定日2026-10-08、予定観測日2026-10-13、遅延実行日2026-10-15。
 固定window: 2026-10-06 14:41:24〜2026-10-12 23:59 JST。protocol変更なし。
-Status: PARTIAL / MANUAL_EXPORT_REQUIRED。未取得サービスを0扱いしない。
+Status: PARTIAL / MANUAL_EXPORT_REQUIRED（楽天正式CSVのみ未取得）。最新の統合結果は末尾「2026-10-15 API統合観測」を参照。以下の初回未取得記録はprovenanceとして保持。未取得サービスを0扱いしない。
 
 ## Search Console
 取得方法: ユーザー提供の正式Performance CSV ZIP。Web (text-based)、日付2026/10/06–2026/10/12。フィルタCSVにpage filterなし。
@@ -210,3 +210,119 @@ Fixed requested JST window: 2026-10-06 14:41:24 inclusive through 2026-10-13 00:
 - Prior Cloudflare AUTHORIZATION_REQUIRED status is superseded by this acquisition only. Google and Rakuten remain pending.
 
 Private machine-readable source: outputs/day7-observation/cloudflare-20261015-1/observation.json. No production change.
+
+
+## API observer acquisition (2026-10-15T13:58:27Z)
+
+Protocol: day7-v1. Requested: 2026-10-06T14:41:24+09:00 — 2026-10-13T00:00:00+09:00 (Asia/Tokyo; upper bound exclusive).
+
+### production_health
+
+Status: known. Reason: none
+
+Source: previous read-only production verification; method=existing verification JSON; checked_at=2026-10-15T13:58:27Z.
+
+Actual window: 2026-10-15T08:35:14Z — 2026-10-15T08:35:14Z; timezone=UTC; granularity=snapshot; latest_available_date=unknown; reporting_delay=unknown.
+- Reused prior technical checks; no fresh production request or historical D+7 indexing inference.
+
+### search_console
+
+Status: known. Reason: none
+
+Source: https://www.googleapis.com/webmasters/v3/sites/sc-domain:choicelen.page/searchAnalytics/query; method=read-only API; checked_at=2026-10-15T13:58:18Z.
+
+Actual window: 2026-10-06 — 2026-10-12; timezone=America/Los_Angeles; granularity=daily; latest_available_date=unknown; reporting_delay=unknown.
+- average_position: 6 (known)
+- clicks: 0 (zero)
+- ctr: 0 (zero)
+- impressions: 1 (known)
+- PT day boundaries differ from the requested JST window; query rows can be privacy-suppressed.
+- dataState=all; metadata.first_incomplete_date retained; omitted daily rows are not filled with zero.
+- API web may differ from manual Web (text-based); do not force equality.
+- Manual/API reconciliation=CONFIRMED
+
+### search_console_manual
+
+Status: known. Reason: none
+
+Source: user-provided official Search Console export; method=manual CSV ZIP; checked_at=2026-10-15T13:58:27Z.
+
+Actual window: 2026-10-06 — 2026-10-12; timezone=America/Los_Angeles; granularity=daily; latest_available_date=unknown; reporting_delay=unknown.
+- average_position: 6 (known)
+- clicks: 0 (zero)
+- ctr: 0 (zero)
+- impressions: 1 (known)
+- Manual PT window retained; no JST-exact equivalence. Current index state is not supplied by Performance export.
+
+### sitemap
+
+Status: known. Reason: none
+
+Source: https://www.googleapis.com/webmasters/v3/sites/sc-domain:choicelen.page/sitemaps/https:%2F%2Fchoicelen.page%2Fsitemap.xml; method=read-only API; checked_at=2026-10-15T13:58:27Z.
+
+Actual window: current — current; timezone=UTC; granularity=current indexed version; not historical; latest_available_date=unknown; reporting_delay=unknown.
+- errors: 0 (zero)
+- warnings: 0 (zero)
+- contents.submitted counts submitted URLs; deprecated contents.indexed is deliberately ignored; not discovered/indexed proof.
+
+### url_inspection
+
+Status: known. Reason: none
+
+Source: https://searchconsole.googleapis.com/v1/urlInspection/index:inspect; method=read-only API; checked_at=2026-10-15T13:58:20Z.
+
+Actual window: current — current; timezone=UTC; granularity=current indexed version; not historical; latest_available_date=unknown; reporting_delay=unknown.
+
+Indexed version fields: {"coverage":"送信して登録されました","google_canonical":"https://choicelen.page/articles/compact-air-purifier-placement/","indexing":"INDEXING_ALLOWED","last_crawl":"2026-10-10T15:07:18Z","robots":"ALLOWED","user_canonical":"https://choicelen.page/articles/compact-air-purifier-placement/","verdict":"PASS"}
+
+### Pre-registered decision
+
+NO SEO PROFITABILITY DECISION
+
+Pending: cloudflare incomplete; rakuten incomplete; CONTINUE requires independently verified production health and operational measurement
+
+No browser automation, production changes, or SEO/profitability conclusion. Prior manual export and browser safety-stop history remain in this document.
+
+## 2026-10-15 API統合観測（最新結果）
+
+Googleの本人承認後、読み取り専用のSearch Analytics / URL Inspection / Sitemaps APIが成功した。ブラウザ自動操作は再開していない。既存Cloudflare・Radar・技術確認と保存済み結果をoffline統合し、再取得やwindow変更を行わなかった。以前の未認証・安全停止の記録は履歴であり、現在のGoogle/Cloudflare取得状態は本節で更新する。
+
+### Search Console
+
+- 取得時刻: performance 2026-10-15 22:58:18 JST、inspection 22:58:20、sitemap 22:58:27。
+- Performance actual window: 2026-10-06–2026-10-12 PT、Web、対象記事URL完全一致filter、日別/クエリ別/ページ別及び合計を取得。
+- 表示1、クリック0、CTR 0%、平均順位6。page rowも対象記事1件。既存正式CSVの数値との照合はCONFIRMED。クエリ行は0行で、非開示を含み得るため検索需要0とは解釈しない。
+- PT期間はJST固定windowと一致しない。非zeroの10/9 PTは固定window内だが、固定window全体の厳密な表示・クリック合計はunknown。10/13–15の新たな検索実績を加算していない。
+- latest available date / reporting delayはunknown。取得終端10/12をサービス全体の最新反映日とみなさない。dataState=all、incomplete metadataは応答にない。未反映日を0補完しない。
+- 現在のindex snapshot: PASS / 送信して登録されました。robots ALLOWED、INDEXING_ALLOWED、fetch SUCCESSFUL。user/Google canonicalとも対象記事URLと一致。
+- 最終crawl: 2026-10-11 00:07:18 JST。現在の登録状態をD+7時点の登録状態へ遡及しない。
+- sitemap: isPending=false、errors=0、warnings=0、web submitted=2。これは検出数/登録数の証明ではない。
+- 最終送信2026-10-06 18:09:26 JST、最終読み込み2026-10-13 04:14:03 JST。後者は固定window外の現在snapshotとして分離する。
+
+### Cloudflare / Rakuten
+
+Cloudflare actual windowは固定JST windowと一致。公式RUM count=80 page views、sum.visits=80、home=70、article=10。unique personsはunknown。全80件のrefererHostが空で、管理・QAアクセスを分離できずunclassified。自然流入や80人とは呼ばない。checked_at=2026-10-15 22:39:25 JST、latest available / delayはunknown。
+
+楽天clicks / orders / commission JPYはunknown。正式report未取得であり、0、反映待ち、記事別実績のいずれとも確定しない。MANUAL_EXPORT_REQUIRED: 楽天アフィリエイト正式レポートで2026-10-06–10-12のCSVを取得する。公開時刻で切れない場合は日別actual window/timezoneを添える。記事単位分解不能ならaccount aggregateとする。期間・clicks・orders・commissionが分かるCSVを優先し、CSVが出せない場合は期間と正式値が見えるスクリーンショットを使う。認証情報は不要。
+
+### Price Radar: fixed windowとcurrentを分離
+
+固定windowのcanonical history: scheduled slots=6、attempted=9、SUCCESS=8、FAILED=1、PARTIAL=0、観測timestamp内のdedup snapshot=600、successful non-import runのnew snapshots=525、events=34、price-drop candidate events=5。最終成功2026-10-12 09:08:32.8058251 JST。
+
+600と525の差75はtimestampがwindow内の既存初期観測をimportしたもの。9 attemptsは手動/診断を含み、9 scheduled slotsではない。FAILED=1は過去のIP制限診断を含み、Windows日次運用全体の失敗とはしない。candidate event数はdistinct product数やfamily cap後の候補数と区別する。
+
+Current as of 10/15: latest success=2026-10-15 09:08:33 JST、75 fetched、acquisition failures=0、cumulative snapshots=675、events=59、candidate_count=10。これらをD+7固定window値へ混ぜない。schedulerはWindows daily 09:07 JSTのまま変更していない。
+
+### Production Health / Query Interpretation
+
+前回のread-only検証を再利用: top/article HTTP 200、HTTPS、canonical、robots、sitemap、indexability正常。affiliate / sponsored / Analyticsの既存確認を維持。本番への書き込み・deployなし。クエリは非開示のためplacement/product-specific/informational intent分類は不能。1表示のみから需要を一般化しない。
+
+### Pre-registered Decision / Next Action
+
+NO SEO PROFITABILITY DECISION。現在の観測ではINVESTIGATE_INDEXINGを要する問題は確認されなかった。Google・Cloudflareの測定経路は稼働しているが、楽天正式report未取得のため、全measurement operationalを条件とする最終CONTINUE判定は保留。取得できないことだけでDATA_PIPELINE_ISSUEとは断定しない。0件実績を理由にNO-GOとはしない。
+
+優先事項は楽天正式CSV回収。その後は既定分岐A（Indexed + impressions > 0）の互換フィルター記事validation / 除湿機external market validationが次候補。ただし今回それらは開始せず、2本目公開・SEO変更・scheduler変更も行わない。
+
+### Provenance / Caveats
+
+protocol=day7-v1、frozen=2026-10-08、scheduled=2026-10-13、actual=2026-10-15。取得実装pre-data commit=29e075c、offline統合実装=3ad084f。private保存: outputs/day7-observation/combined-20261015-1/observation.json、各元取得のchecked_at/window/source/methodを保持。秘密値・raw account responseはcommitしない。初期browser安全停止と旧unknown記録は変更せず保持。デザイン変更の前後差、SEO成功/失敗、収益性は判定しない。

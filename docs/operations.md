@@ -92,3 +92,7 @@ WriteNewとnew-directory拒否で既存outputを保護。再取得は-sourceで�
 go run ./cmd/auth-choiceLen -client <private-downloaded-desktop-client.json> -out ../observer-google-adc.json
 本人が表示された127.0.0.1の入口を同じPCの通常ブラウザで開く。Google公式consentのSearch Console read-onlyだけを承認。PKCE S256/state、random IPv4 loopback port、15分timeoutを使用。既存ADCは上書きしない。serverは承認完了後に終了する。ブラウザ自動操作は行わない。
 refresh token/client secret/認証codeはログへ出力しない。生成されたauthorized_user ADCのpathをGOOGLE_APPLICATION_CREDENTIALSで指定してobserverを再開。元のdownloaded Desktop JSONをADCとして直接指定しない。
+
+### 保存済み取得結果のoffline統合
+
+observe-choiceLenの-source none -reuse <observation1.json>,<observation2.json> -out <new-private-directory>で再API呼び出しなしに統合できる。同一protocol/requested windowだけを受理し、同じsourceは後のファイルを採用する。各サービスのactual windowと元checked_atは保持され、異なるtimezoneの数値を同一windowとみなさない。outは既存directoryの上書きを拒否する。最終判断のため楽天正式report未取得をunknownとして残す。
