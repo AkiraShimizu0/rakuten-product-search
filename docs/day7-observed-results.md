@@ -72,7 +72,7 @@ Actual window: 2026-10-06T14:41:24+09:00 — 2026-10-13T00:00:00+09:00; timezone
 
 ### production_health
 
-Status: known. Reason: 
+Status: known. Reason: none
 
 Source: previous read-only production verification; method=existing verification JSON; checked_at=2026-10-15T13:15:41Z.
 
@@ -125,7 +125,7 @@ Actual window: 2026-10-06 — 2026-10-12; timezone=America/Los_Angeles; granular
 
 ### search_console_manual
 
-Status: known. Reason: 
+Status: known. Reason: none
 
 Source: user-provided official Search Console export; method=manual CSV ZIP; checked_at=2026-10-15T13:15:34Z.
 

@@ -19,6 +19,9 @@ func Report(o Observation) string {
 	sort.Strings(keys)
 	for _, k := range keys {
 		s := o.Sources[k]
+		if s.Reason == "" {
+			s.Reason = "none"
+		}
 		fmt.Fprintf(&b, "\n### %s\n\nStatus: %s. Reason: %s\n\nSource: %s; method=%s; checked_at=%s.\n\nActual window: %s — %s; timezone=%s; granularity=%s; latest_available_date=%s; reporting_delay=%s.\n", k, s.Status, s.Reason, s.Endpoint, s.Method, s.CheckedAt, s.Window.From, s.Window.To, s.Window.Timezone, s.Window.Granularity, s.LatestAvailable, s.Delay)
 		mk := []string{}
 		for name := range s.Metrics {
