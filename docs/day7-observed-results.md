@@ -333,3 +333,11 @@ protocol=day7-v1、frozen=2026-10-08、scheduled=2026-10-13、actual=2026-10-15�
 取得方法=user-reported dashboard observation。クリック数=0、売上件数=0、成果報酬額=0円との報告として保存する。CSV・スクリーンショットをこちらで確認した値ではない。report actual window / timezone / latest available date / reporting delay / article attributionは未確認。アカウント集計の可能性があり、記事単位の0とは断定しない。
 
 D+7固定windowへ自動編入せず、期間確認までは固定windowの楽天値はunknownのままとする。以前の未取得記録は保持。0であることだけを失敗判定に使用しない。最終CONTINUE保留の理由は実績0ではなく、windowと測定provenanceの確認不足である。production変更なし。
+
+## 楽天レポート期間の追加確認
+
+ユーザー確認: 選択できた期間は「30日間」。前回のクリック0・売上件数0・成果報酬0円は、この30日間レポートのユーザー確認値である。正確な開始日・終了日・timezone・反映遅延・記事別分解は未確認。method=user-reported dashboard observation、independent verificationなし、scopeはaccount aggregateの可能性あり。
+
+指定した10/6–10/12の集計ではないため、D+7固定windowの楽天値はunknownのまま保持する。30日間0を指定期間の正式0に置換しない。以前の期間未確認記録は履歴として残す。サービスUI制約によるwindow不一致であり、それ自体でDATA_PIPELINE_ISSUEとは判定しない。追加の手動操作は要求せず、取得可能データの記録はここで停止する。
+
+最終取得状態: Google/Cloudflare/Radarは取得済み、楽天は30日間のユーザー報告のみ。NO SEO PROFITABILITY DECISION。現在indexing問題は確認されず、全測定経路の確認を要するCONTINUEの最終確定は保留。公開・SEO施策・scheduler変更なし。
