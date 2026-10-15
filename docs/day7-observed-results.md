@@ -195,3 +195,17 @@ NO SEO PROFITABILITY DECISION. Final CONTINUE/indexing decision remains pending 
 Next: supply Google read-only ADC and dedicated Cloudflare Account Analytics Read credential using docs/operations.md; rerun only gsc/cloudflare into a new output directory. Rakuten remains manual CSV. No account/credential is requested in chat. Current output is in ignored outputs/day7-observation. No raw account response or screenshot is committed.
 
 Validation: go test ./... /go vet ./... /git diff --check. site/, content/published/, canonical/affiliate settings, frozen protocol, workflows and scheduler unchanged.
+
+## Cloudflare read-only API connected
+
+Dedicated observer environment is configured; no credential values are included here. Acquisition checked_at:Fixed requested JST window: 2026-10-06 14:41:24 inclusive through 2026-10-13 00:00 exclusive. Live schema discovery and official rumPageloadEventsAdaptiveGroups query succeeded.
+
+- Site total page views (RUM count): 80.
+- Site total sum.visits: 80. This is not unique persons.
+- Home path: 70 page views; article path: 10 page views.
+- refererHost is empty for all 80. This is no reported referrer, not proof of organic/direct human traffic.
+- Admin/QA access cannot be separated: unclassified.
+- unique visitors: unknown. Reporting delay/latest available date: unknown.
+- Prior Cloudflare AUTHORIZATION_REQUIRED status is superseded by this acquisition only. Google and Rakuten remain pending.
+
+Private machine-readable source: outputs/day7-observation/cloudflare-20261015-1/observation.json. No production change.
