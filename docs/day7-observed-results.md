@@ -349,3 +349,19 @@ D+7固定windowへ自動編入せず、期間確認までは固定windowの楽�
 availability=EMPTY_EXPORT、actual window=2026年10月という月ラベルのみ（正確な抽出終端・timezone・latest available date・reporting delayはunknown）。データ行がないことを日別0や確定報酬0と解釈しない。成果報酬列と確定報酬を混同しない。D+7指定期間のclicks/orders/commissionはunknownを維持。前回のスクリーンショットでは30日間サマリのclicks=0、売上件数=0、未確定成果報酬=0円を視認できるが、期間と確定状態を別扱いとする。
 
 原本はユーザーDownloadsに保持し、CSV全文はrepositoryへcommitしない。追加の再ダウンロードは要求しない。取得可能範囲の評価は完了し、NO SEO PROFITABILITY DECISION、全measurement operationalに基づく最終CONTINUEは楽天固定window確認不足で保留。本番変更なし。
+
+## 楽天日別画面による最終確認・D+7判定確定
+
+提供された公式「期間別」画面（2026年10月）の10/6、10/7、10/8、10/9、10/10、10/11、10/12の各行を視認確認。各日とも成果報酬=0、クリック数=0、売上件数=0、売上金額=0。対象7日の日付行合計はclicks=0、orders=0、reported commission=0円。空CSVから推定した0ではなく、正式画面の明示的な0を根拠にする。previous unknown/保留記録は当時の取得状態として保持し、本節が最新判断である。
+
+取得方法=ユーザー提供スクリーンショットのvisual transcription、scope=account aggregate。記事単位の成果ではない。報酬列は報告成果報酬であり、確定支払報酬とはみなさない。exact actual window=画面の2026-10-06〜2026-10-12日別行、timezoneは画面に非表示でunknown、公開時刻によるintraday cutoff不可。JST固定windowの厳密同一集計とは呼ばず、表示日付集計として別記する。latest available date / reporting delayはunknown。画面に見える未来日の0は取得・集計しない。追加CSVやスクリーンショットは不要。
+
+### Final pre-registered decision
+
+CONTINUE + NO SEO PROFITABILITY DECISION。
+
+根拠: 記事indexable、現在Google登録PASS、canonical一致、sitemap errors/warnings=0、既存read-only production health正常、Google/Cloudflare APIと楽天正式日別画面から測定値を取得できた。重大なproduction issueや測定設定不備は確認されない。取得windowの不一致や未確認の反映遅延は制約として保持し、DATA_PIPELINE_ISSUEとは混同しない。登録・測定が動いていることの確認にとどめ、検索成功/失敗・収益性を確定しない。
+
+最終値: GSC=表示1/クリック0/CTR0%/平均順位6（10/6–10/12 PT）。Cloudflare=80 page views、80 sum.visits、home70/article10（指定JST window、unclassified）。楽天=対象表示日付行でclicks0/orders0/reported commission0円（account aggregate、timezone/delay unknown）。Radar固定window=slots6/attempted9/success8/failed1/partial0/snapshots600/events34/drop candidate events5。current 10/15の675/59/10とは分離する。
+
+次工程候補は事前登録分岐に沿う互換フィルター記事validation / 除湿機external market validation、または少量データとして継続観測。今回これらには着手せず、main merge・公開・deploy・scheduler変更なし。
