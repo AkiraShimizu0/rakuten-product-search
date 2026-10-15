@@ -26,7 +26,8 @@ func run() error {
 	to := flag.String("to", "2026-10-12", "Google PT end date inclusive")
 	start := flag.String("window-start", "2026-10-06T14:41:24+09:00", "fixed RFC3339 requested window")
 	end := flag.String("window-end", "2026-10-13T00:00:00+09:00", "exclusive fixed RFC3339 end")
-	source := flag.String("source", "all", "all|gsc|cloudflare|radar|rakuten (comma separated)")
+	source := flag.String("source", "all", "all|none|gsc|cloudflare|radar|rakuten (comma separated)")
+	reuse := flag.String("reuse", "", "comma-separated prior observations with identical requested window; later files win")
 	property := flag.String("property", "sc-domain:choicelen.page", "exact authorized Search Console property, prefix or sc-domain")
 	env := flag.String("env-file", "", "optional ignored observer-only environment file")
 	out := flag.String("out", "", "new ignored output directory (required)")
@@ -62,6 +63,7 @@ func run() error {
 			}
 		} else {
 			switch s {
+			case "none":
 			case "gsc", "cloudflare", "radar", "rakuten":
 				selected[s] = true
 			default:
@@ -88,6 +90,13 @@ func run() error {
 		return e
 	}
 	o := observer.Observation{Protocol: "day7-v1", Requested: observer.Window{From: *start, To: *end, Timezone: "Asia/Tokyo", Granularity: "instant; exclusive upper bound"}, Sources: map[string]observer.Source{}}
+	if *reuse != "" {
+		prior, err := observer.Reuse(strings.Split(*reuse, ","), o.Requested)
+		if err != nil {
+			return err
+		}
+		o.Sources = prior
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	c := observer.NewClient()
