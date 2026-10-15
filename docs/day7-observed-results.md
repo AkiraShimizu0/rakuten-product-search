@@ -198,7 +198,8 @@ Validation: go test ./... /go vet ./... /git diff --check. site/, content/publis
 
 ## Cloudflare read-only API connected
 
-Dedicated observer environment is configured; no credential values are included here. Acquisition checked_at:Fixed requested JST window: 2026-10-06 14:41:24 inclusive through 2026-10-13 00:00 exclusive. Live schema discovery and official rumPageloadEventsAdaptiveGroups query succeeded.
+Dedicated observer environment is configured; no credential values are included here. Acquisition checked_at: 2026-10-15T13:39:25.0000000+00:00
+Fixed requested JST window: 2026-10-06 14:41:24 inclusive through 2026-10-13 00:00 exclusive. Live schema discovery and official rumPageloadEventsAdaptiveGroups query succeeded.
 
 - Site total page views (RUM count): 80.
 - Site total sum.visits: 80. This is not unique persons.
