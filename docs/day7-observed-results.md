@@ -326,3 +326,10 @@ NO SEO PROFITABILITY DECISION。現在の観測ではINVESTIGATE_INDEXINGを要�
 ### Provenance / Caveats
 
 protocol=day7-v1、frozen=2026-10-08、scheduled=2026-10-13、actual=2026-10-15。取得実装pre-data commit=29e075c、offline統合実装=3ad084f。private保存: outputs/day7-observation/combined-20261015-1/observation.json、各元取得のchecked_at/window/source/methodを保持。秘密値・raw account responseはcommitしない。初期browser安全停止と旧unknown記録は変更せず保持。デザイン変更の前後差、SEO成功/失敗、収益性は判定しない。
+
+## 楽天レポートのユーザー確認値（追記）
+
+ユーザー報告: 「ダウンロード方法わかりませんでした。けど全部0でした。」
+取得方法=user-reported dashboard observation。クリック数=0、売上件数=0、成果報酬額=0円との報告として保存する。CSV・スクリーンショットをこちらで確認した値ではない。report actual window / timezone / latest available date / reporting delay / article attributionは未確認。アカウント集計の可能性があり、記事単位の0とは断定しない。
+
+D+7固定windowへ自動編入せず、期間確認までは固定windowの楽天値はunknownのままとする。以前の未取得記録は保持。0であることだけを失敗判定に使用しない。最終CONTINUE保留の理由は実績0ではなく、windowと測定provenanceの確認不足である。production変更なし。
