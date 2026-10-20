@@ -1,0 +1,51 @@
+{
+  "builder_version": "two-article-v1",
+  "builder_commit": "7c096481895625b96140f4ef073ef0dc82c4d754",
+  "stage": "release",
+  "articles": [
+    {
+      "slug": "articles/winter-laundry-dehumidifier-conditions",
+      "title": "冬の部屋干し用除湿機を、室温・モード・排水条件で比べる",
+      "description": "冬の部屋干し用除湿機4機種を、室温・モード・定格条件・排水と停止条件で照合する購入前の確認記事。",
+      "canonical": "https://choicelen.page/articles/winter-laundry-dehumidifier-conditions/",
+      "source_sha256": "b15b4b3f0648a965d63452a32a7a2087057174b5e65b7acfa36fe445a2533e47",
+      "source_checked": "2026-10-20",
+      "published_at": "2026-10-21T04:30:01+09:00",
+      "order": 1,
+      "indexable": true,
+      "analytics": "existing Cloudflare automatic injection"
+    },
+    {
+      "slug": "articles/compact-air-purifier-placement",
+      "title": "小型空気清浄機はどこに置く？机・床・棚を選ぶための条件表",
+      "description": "小型空気清浄機の机・床・棚への配置を、公式説明書の寸法・吸排気・手入れ条件で確認する購入判断ガイド。",
+      "canonical": "https://choicelen.page/articles/compact-air-purifier-placement/",
+      "source_sha256": "8e19ebc91074cd36a772f915b0a91fc7199983d34bd50d2e0970df20d2e3424d",
+      "source_checked": "2026-10-05",
+      "published_at": "2026-10-06",
+      "order": 2,
+      "indexable": true,
+      "analytics": "existing Cloudflare automatic injection"
+    }
+  ],
+  "claims_sha256": "f958bcb5d543169e9aff7923173be9cb512566f85f0ecbb03d0b3107190799ce",
+  "output_sha256": {
+    "404.html": "2a347b570e4f29937128e1f45eabd74a1ac1c00436cc9da787a2f2817773b712",
+    "articles/compact-air-purifier-placement/index.html": "93087787351a4736782fe8d3cefd2ee2b1b19bcc5cf48e99cd300ef3558d3767",
+    "articles/winter-laundry-dehumidifier-conditions/index.html": "1a8e1139fd5718a8d9384193642e2935fa834d76b476d80087da24bf476a25bb",
+    "assets/dehumidifier.css": "8b5de1af5138e53431858f3a36d9ee7aeb682261c1a0323e3b8dfbb07e8d9b19",
+    "assets/site.css": "effeef4cb704cd13f490b3335df536d3e4a6a48d2ddc0ebfb26de4e93e30c3fe",
+    "index.html": "439cf12bf783a35d8a028bc86defa8c1db06c363b5b8c834f1f00d1685a8b5b1",
+    "robots.txt": "416d3f5f8a31a4a8c4e1cba8eeff735144d0facfee9419b12c92a648e66c53e7",
+    "sitemap.xml": "7f8d2413fb1de0776af80becdfff63b7d291f6fc4db0a700691f2369485a5114"
+  },
+  "release": {
+    "published_at": "2026-10-21T04:30:01+09:00",
+    "source_checked": "2026-10-20",
+    "deployment_commit": "7c096481895625b96140f4ef073ef0dc82c4d754",
+    "canonical_url": "https://choicelen.page/articles/winter-laundry-dehumidifier-conditions/",
+    "article_slug": "articles/winter-laundry-dehumidifier-conditions",
+    "builder_version": "two-article-v1"
+  },
+  "canonical_note": "intended release URLs; RC remains private/unpublished"
+}
