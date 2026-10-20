@@ -129,7 +129,7 @@ func TestClaimTraceRejection(t *testing.T) {
 
 func TestExplicitReleaseMetadata(t *testing.T) {
 	first, md, claims, o := fixture(t)
-	r := releaseMetadata{PublishedAt: "2026-10-21T09:00:00+09:00", SourceChecked: sourceChecked, DeploymentCommit: o.BuilderCommit}
+	r := releaseMetadata{PublishedAt: "2026-10-21T09:00:00+09:00", SourceChecked: sourceChecked, DeploymentCommit: o.BuilderCommit, CanonicalURL: secondURL, ArticleSlug: strings.Trim(secondPath, "/"), BuilderVersion: builderVersion}
 	// Synthetic test timestamps only; no release build is executed for the private RC.
 	release := o
 	release.Stage = "release"

@@ -8,6 +8,7 @@ import (
 	"jev-money-engine/internal/canary"
 	"jev-money-engine/internal/editorial"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -83,11 +84,19 @@ func main() {
 	secondSource := flag.String("second-source", "", "private audited final Markdown; never reconstructed")
 	secondClaims := flag.String("second-claims", "", "private audited claim map")
 	commit := flag.String("builder-commit", "", "explicit builder commit SHA")
+	verifyDir := flag.String("verify-release", "", "validate existing release files without rebuilding")
 	metadata := flag.String("release-metadata", "", "explicit release JSON, required only for release stage")
 	flag.Parse()
 	md, err := os.ReadFile("content/published/compact-air-purifier-placement.md")
 	if err != nil {
 		panic(err)
+	}
+	if *verifyDir != "" {
+		if err = verifyRelease(*verifyDir, string(md)); err != nil {
+			panic(err)
+		}
+		fmt.Println("Verified exact release artifact; no rebuild")
+		return
 	}
 	var files map[string]string
 	if *stage == "legacy" {
@@ -132,6 +141,11 @@ func main() {
 				panic("trailing release metadata JSON")
 			}
 		}
+		if o.Stage == "release" {
+			if e = releaseHEAD(o.BuilderCommit); e != nil {
+				panic(e)
+			}
+		}
 		files, err = assembleTwo(string(md), string(source), claims, o)
 	}
 	if err != nil {
@@ -161,4 +175,16 @@ func main() {
 		}
 	}
 	fmt.Printf("Built ChoiceLen stage=%s; files=%d; formally issued affiliate links remain 1\n", *stage, len(files))
+}
+
+func releaseHEAD(want string) error {
+	b, e := exec.Command("git", "rev-parse", "HEAD").Output()
+	if e != nil || strings.TrimSpace(string(b)) != want {
+		return fmt.Errorf("release builder commit must equal actual HEAD")
+	}
+	b, e = exec.Command("git", "status", "--porcelain", "--untracked-files=all", "--", "cmd", "internal", "content/published", "wrangler.jsonc", ".github/workflows/choiceLen.yml").Output()
+	if e != nil || len(b) != 0 {
+		return fmt.Errorf("release builder/content/config must be committed and clean")
+	}
+	return nil
 }

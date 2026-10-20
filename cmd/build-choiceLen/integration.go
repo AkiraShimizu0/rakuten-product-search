@@ -27,6 +27,9 @@ type releaseMetadata struct {
 	UpdatedAt        string `json:"updated_at,omitempty"`
 	SourceChecked    string `json:"source_checked"`
 	DeploymentCommit string `json:"deployment_commit"`
+	CanonicalURL     string `json:"canonical_url"`
+	ArticleSlug      string `json:"article_slug"`
+	BuilderVersion   string `json:"builder_version"`
 }
 
 type integrationOptions struct {
@@ -73,7 +76,7 @@ func validateOptions(o integrationOptions) error {
 	if e != nil || !strings.HasSuffix(r.PublishedAt, "+09:00") || t.Format("2006-01-02") < sourceChecked {
 		return fmt.Errorf("valid explicit JST publication timestamp on/after source check required")
 	}
-	if r.SourceChecked != sourceChecked || r.DeploymentCommit != o.BuilderCommit {
+	if r.SourceChecked != sourceChecked || r.DeploymentCommit != o.BuilderCommit || r.CanonicalURL != secondURL || r.ArticleSlug != strings.Trim(secondPath, "/") || r.BuilderVersion != builderVersion {
 		return fmt.Errorf("source check/deployment commit mismatch")
 	}
 	if r.UpdatedAt != "" {
