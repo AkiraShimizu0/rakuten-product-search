@@ -1,13 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"jev-money-engine/internal/canary"
 	"jev-money-engine/internal/editorial"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -76,19 +79,79 @@ func build(md, date string) (map[string]string, error) {
 func main() {
 	out := flag.String("out", "site", "new site directory")
 	date := flag.String("date", "", "actual publication date YYYY-MM-DD (JST)")
+	stage := flag.String("stage", "legacy", "legacy, rc (no new publication date), or release")
+	secondSource := flag.String("second-source", "", "private audited final Markdown; never reconstructed")
+	secondClaims := flag.String("second-claims", "", "private audited claim map")
+	commit := flag.String("builder-commit", "", "explicit builder commit SHA")
+	metadata := flag.String("release-metadata", "", "explicit release JSON, required only for release stage")
 	flag.Parse()
 	md, err := os.ReadFile("content/published/compact-air-purifier-placement.md")
 	if err != nil {
 		panic(err)
 	}
-	files, err := build(string(md), *date)
+	var files map[string]string
+	if *stage == "legacy" {
+		if *secondSource != "" || *secondClaims != "" || *metadata != "" {
+			panic("second-article inputs require explicit rc or release stage")
+		}
+		files, err = build(string(md), *date)
+	} else {
+		if *date != "" || *secondSource == "" || *secondClaims == "" {
+			panic("two-article build requires private source/claims; legacy -date must be unset")
+		}
+		abs, _ := filepath.Abs(*out)
+		root, _ := filepath.Abs("outputs")
+		rel, e := filepath.Rel(root, abs)
+		if e != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			panic("two-article output must be a new directory inside ignored outputs; never site/")
+		}
+		source, e := os.ReadFile(*secondSource)
+		if e != nil {
+			panic("audited private final draft unavailable; stop rather than reconstruct")
+		}
+		claims, e := os.ReadFile(*secondClaims)
+		if e != nil {
+			panic("audited private claim map unavailable")
+		}
+		if e = auditedSecond(string(source), claims); e != nil {
+			panic(e)
+		}
+		o := integrationOptions{Stage: *stage, BuilderCommit: *commit}
+		if *metadata != "" {
+			raw, e := os.ReadFile(*metadata)
+			if e != nil {
+				panic("release metadata unavailable")
+			}
+			o.Release = &releaseMetadata{}
+			dec := json.NewDecoder(strings.NewReader(string(raw)))
+			dec.DisallowUnknownFields()
+			if e = dec.Decode(o.Release); e != nil {
+				panic("invalid release metadata JSON")
+			}
+			if dec.Decode(&struct{}{}) != io.EOF {
+				panic("trailing release metadata JSON")
+			}
+		}
+		files, err = assembleTwo(string(md), string(source), claims, o)
+	}
 	if err != nil {
 		panic(err)
 	}
 	if _, err = os.Stat(*out); !os.IsNotExist(err) {
 		panic("output already exists or inaccessible")
 	}
-	for name, body := range files {
+	var names []string
+	for name := range files {
+		if name != "build-manifest.json" {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	if _, ok := files["build-manifest.json"]; ok {
+		names = append(names, "build-manifest.json") // completion marker written last
+	}
+	for _, name := range names {
+		body := files[name]
 		path := filepath.Join(*out, filepath.FromSlash(name))
 		if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			panic(err)
@@ -97,5 +160,5 @@ func main() {
 			panic(err)
 		}
 	}
-	fmt.Println("Built ChoiceLen: one audited article; formally issued affiliate links = 1")
+	fmt.Printf("Built ChoiceLen stage=%s; files=%d; formally issued affiliate links remain 1\n", *stage, len(files))
 }

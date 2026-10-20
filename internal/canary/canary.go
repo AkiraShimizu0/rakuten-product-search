@@ -30,10 +30,23 @@ func inline(s string) string {
 }
 
 func Render(md, canonical string) (string, error) {
+	return render(md, canonical, "小型空気清浄機の机・床・棚への配置を、公式説明書の寸法・吸排気・手入れ条件で確認する購入判断ガイド。", true)
+}
+
+// RenderReference renders a source-backed article without claiming advertising.
+// The legacy Render entry point retains its mandatory disclosure guard.
+func RenderReference(md, canonical, description string) (string, error) {
+	if strings.TrimSpace(description) == "" {
+		return "", fmt.Errorf("description required")
+	}
+	return render(md, canonical, description, false)
+}
+
+func render(md, canonical, description string, requireDisclosure bool) (string, error) {
 	if strings.Count(md, "\n# ")+boolInt(strings.HasPrefix(md, "# ")) != 1 {
 		return "", fmt.Errorf("one H1 required")
 	}
-	if !strings.Contains(md, Disclosure) {
+	if requireDisclosure && !strings.Contains(md, Disclosure) {
 		return "", fmt.Errorf("missing advertising disclosure")
 	}
 	for _, s := range []string{"実際に使ってみた", "実測した", "体感した", "絶対", "必ず", "最強", "No.1", "これが正解"} {
@@ -90,7 +103,7 @@ func Render(md, canonical string) (string, error) {
 	if canonical != "" {
 		canon = `<link rel="canonical" href="` + html.EscapeString(canonical) + `">`
 	}
-	return `<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>` + html.EscapeString(title) + `</title><meta name="description" content="小型空気清浄機の机・床・棚への配置を、公式説明書の寸法・吸排気・手入れ条件で確認する購入判断ガイド。">` + canon + `<style>body{margin:0;background:#f6f7f8;color:#17252c;font:17px/1.85 system-ui,sans-serif}main{max-width:840px;margin:auto;padding:24px;background:white}h1{font-size:clamp(1.6rem,5vw,2.3rem);line-height:1.4}h2{margin-top:2em;font-size:1.3rem}.table-scroll{overflow-x:auto}table{border-collapse:collapse;min-width:600px}td{border:1px solid #b7c6ce;padding:12px;vertical-align:top}tr:first-child{background:#edf3f6;font-weight:bold}a{color:#0758a0;overflow-wrap:anywhere}p{overflow-wrap:anywhere}@media(max-width:600px){main{padding:18px}body{font-size:16px}}</style></head><body><main>` + body.String() + `</main></body></html>`, nil
+	return `<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>` + html.EscapeString(title) + `</title><meta name="description" content="` + html.EscapeString(description) + `">` + canon + `<style>body{margin:0;background:#f6f7f8;color:#17252c;font:17px/1.85 system-ui,sans-serif}main{max-width:840px;margin:auto;padding:24px;background:white}h1{font-size:clamp(1.6rem,5vw,2.3rem);line-height:1.4}h2{margin-top:2em;font-size:1.3rem}.table-scroll{overflow-x:auto}table{border-collapse:collapse;min-width:600px}td{border:1px solid #b7c6ce;padding:12px;vertical-align:top}tr:first-child{background:#edf3f6;font-weight:bold}a{color:#0758a0;overflow-wrap:anywhere}p{overflow-wrap:anywhere}@media(max-width:600px){main{padding:18px}body{font-size:16px}}</style></head><body><main>` + body.String() + `</main></body></html>`, nil
 }
 func boolInt(v bool) int {
 	if v {
