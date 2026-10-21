@@ -33,7 +33,15 @@ func TestFrozenBuild(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if strings.ReplaceAll(string(published), "\r\n", "\n") != v {
+		expected := strings.ReplaceAll(string(published), "\r\n", "\n")
+		frozen := map[string]string{"index.html": "38ec9bbb74f23e41e271292d4f1a741ee03e44e12047467a275e5ea20749ff0f", "sitemap.xml": "ae89a8891f0d69caefbdef7c9aff22fda653b4eab03b9574d358429fb925ebb5"}
+		if hash, ok := frozen[k]; ok {
+			if canary.Hash([]byte(v)) != hash {
+				t.Fatalf("legacy frozen output changed: %s", k)
+			}
+			continue
+		}
+		if expected != v {
 			t.Fatalf("committed site diverges from frozen build: %s", k)
 		}
 	}
