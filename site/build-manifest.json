@@ -1,6 +1,6 @@
 {
   "builder_version": "two-article-v1",
-  "builder_commit": "7c096481895625b96140f4ef073ef0dc82c4d754",
+  "builder_commit": "5b72394a29c6536578acb633e7185c9324dc230d",
   "stage": "release",
   "articles": [
     {
@@ -10,7 +10,7 @@
       "canonical": "https://choicelen.page/articles/winter-laundry-dehumidifier-conditions/",
       "source_sha256": "b15b4b3f0648a965d63452a32a7a2087057174b5e65b7acfa36fe445a2533e47",
       "source_checked": "2026-10-20",
-      "published_at": "2026-10-21T04:30:01+09:00",
+      "published_at": "2026-10-21T21:50:47+09:00",
       "order": 1,
       "indexable": true,
       "analytics": "existing Cloudflare automatic injection"
@@ -32,17 +32,17 @@
   "output_sha256": {
     "404.html": "2a347b570e4f29937128e1f45eabd74a1ac1c00436cc9da787a2f2817773b712",
     "articles/compact-air-purifier-placement/index.html": "93087787351a4736782fe8d3cefd2ee2b1b19bcc5cf48e99cd300ef3558d3767",
-    "articles/winter-laundry-dehumidifier-conditions/index.html": "1a8e1139fd5718a8d9384193642e2935fa834d76b476d80087da24bf476a25bb",
+    "articles/winter-laundry-dehumidifier-conditions/index.html": "d191fdb4c798299689cf3fc41a2d99d7a41a6e4f92c0da46c32d6d0ab7b15f0a",
     "assets/dehumidifier.css": "8b5de1af5138e53431858f3a36d9ee7aeb682261c1a0323e3b8dfbb07e8d9b19",
     "assets/site.css": "effeef4cb704cd13f490b3335df536d3e4a6a48d2ddc0ebfb26de4e93e30c3fe",
-    "index.html": "439cf12bf783a35d8a028bc86defa8c1db06c363b5b8c834f1f00d1685a8b5b1",
+    "index.html": "1620293f6d53a9fabea4080d7d1e4c4c0d0fdb3bdae98506fa53f6e926042aff",
     "robots.txt": "416d3f5f8a31a4a8c4e1cba8eeff735144d0facfee9419b12c92a648e66c53e7",
-    "sitemap.xml": "7f8d2413fb1de0776af80becdfff63b7d291f6fc4db0a700691f2369485a5114"
+    "sitemap.xml": "92ba36126ed9b118723761c7d75abdd45d9d90b9cb4052c036aa1797daa0f495"
   },
   "release": {
-    "published_at": "2026-10-21T04:30:01+09:00",
+    "published_at": "2026-10-21T21:50:47+09:00",
     "source_checked": "2026-10-20",
-    "deployment_commit": "7c096481895625b96140f4ef073ef0dc82c4d754",
+    "deployment_commit": "5b72394a29c6536578acb633e7185c9324dc230d",
     "canonical_url": "https://choicelen.page/articles/winter-laundry-dehumidifier-conditions/",
     "article_slug": "articles/winter-laundry-dehumidifier-conditions",
     "builder_version": "two-article-v1"
