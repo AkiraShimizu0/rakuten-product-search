@@ -142,3 +142,62 @@ tracked差分：release metadata／HEAD guard、既存artifact検査、tests、�
 External LLM APIs0／$0、楽天API0、GSC API0。Cloudflareは1回の失敗deploy workflow（service・account認証確認2件）で成功version0。GitHub Actions runは約70秒、実際の課金額は未確認で0と断定しない。新しい有料planは契約していない。
 
 最終検査：`go test ./...` PASS、`go vet ./...` PASS、`git diff --check` PASS。GitHub runでも同検査とartifact validationがSUCCESS。生成物の再buildなしにdeployを試みたが、認証復旧待ちで停止した。
+
+
+## Retry after credential update — 2026-10-21（最新結果）
+
+**Latest Final Status: NOT_PUBLISHED。** 以下はユーザーが既存GitHub Actions Secretを更新したと連絡した後の再開記録。上記の旧失敗履歴・旧metadataは変更せず保持する。
+
+### Fresh release metadata / artifact
+
+- 新しい実時刻（Asia/Tokyo RFC3339）：`2026-10-21T21:50:47+09:00`。旧`2026-10-21T04:30:01+09:00`は再利用していない。
+- 新release生成時の実HEAD／builder-content commit：`5b72394a29c6536578acb633e7185c9324dc230d`。
+- source_checked：`2026-10-20`のまま。公開日とのcalendar差1日。検証から連続した再開であり、原本確認日を今日へ書き換えず、全面的な再評価もしていない。
+- 監査済み本文・claims・4機種・2記事builder・共通CSS・1本目・広告方針の変更0。除湿機の価格／購入／affiliateリンク0を維持。
+- private artifact：`outputs/dehumidifier-production-release/retry-20261021T215046/release/`。新規directoryへstage releaseで9ファイル生成し、既存RC／旧releaseをそのままdeployしていない。
+- 検証済み集合SHA256：`9d9b98f6fcf36ea7dc334439f3e219604d0a913720f8b1e8dac07ec5823158cf`（同じsorted path TAB file hash LF方式、manifest自身も含む）。**実deploy済みhashではない。**
+- artifact commit：`dcf8a5062aeff244031baaef373f58baecf03cbe`。前回attemptからのtracked変更はhome／新記事／sitemap／manifestのmetadata4ファイルだけで、builder／原稿は変更していない。
+
+### Repeated pre-deploy gate
+
+全PASS：release manifest／各file hash／metadata／現在HEAD、expected9files、第一記事の現在productionとの一致、3self-canonical、valid3URL sitemapと旧記事日付維持、robots／noindex、内部file／fragment／CSS、localhost／placeholder0、9source URL、22claim joinと全行の順序付き本文照合、4表、除湿機affiliate0。
+
+27℃／60%・周波数・モード実動作・IJC／Panasonicのunknown・排水／自動停止・購入保留も生成HTMLで保持。既存の独立claim監査範囲を変える本文編集なし。
+
+`go test ./...`／`go vet ./...`／`git diff --check`はローカルPASS。検証済みartifactを再生成せずsiteへ配置し、stage後のrelease検査・fixtureもPASS。今回もGitHub側で同3検査・exact artifact verification・pinned Wrangler install・dry-runがすべてSUCCESS。
+
+### New workflow result
+
+[New Actions run 39603116921](https://github.com/AkiraShimizu0/rakuten-product-search/actions/runs/39603116921)をworkflow_dispatchで新規実行した。**旧run39484227719のrerunではない。**
+
+2026-10-21 21:53:24 JST、production deploy stepで失敗。Cloudflare API pathは`/accounts/[masked]/workers/services/choicelen-canary`。
+
+返された本文：
+
+```text
+No access to the specified service.
+```
+
+**数値のCloudflare error codeは今回のWranglerログに表示されていない（unknown）。Wrangler process exit codeは1。** 旧失敗時の10000／9109を今回のcodeとして転載しない。
+
+今回は`Invalid access token`という表示ではないが、これだけでtokenが正しいaccount／serviceに対して認証・認可されたとは断定しない。対象serviceへのtoken権限、tokenのAccount Resourcesと既存`CLOUDFLARE_ACCOUNT_ID`の対応を確認する必要がある。新project作成、route変更、token作成／変更、secret値の読み出し・表示は行っていない。
+
+ユーザー指示に従い、**同じtokenで追加deploy／反復retryなし**。新version ID、成功deployment timestamp、実deploy済みartifact hashはない。
+
+### Production / GSC / rollback
+
+失敗後のHTTPS観測：home200、1本目200、新記事404、共有CSS200、sitemap200、robots200。home／1本目／CSS／sitemap／robotsは今回の試行直前snapshotと完全一致（edge beaconのみ除去、挿入改行正規化）。1本目のbody／canonical／source／広告／CSSに回帰なし。本番homeは引き続き既存1記事、sitemapも旧2URLのまま。
+
+home／1本目beacon各1。新URLの404にもbeacon1件あったが、**新記事の配信／Analytics確認としては数えない**。新記事の本番canonical／公開日／本文／source／広告0の配信確認は未公開のため未完了。
+
+本番成立の条件を満たさないため、GSC sitemap再送信／URL Inspection／index requestは未実行。用意したprivate API utilityは実行していない。以前blockedだったbrowser操作も再試行していない。
+
+productionは不変なのでrollback不要・未実施。既存評価・過去decision、PR #25、main、Radar、Analytics設定を変更しない。
+
+### Remaining action / provenance
+
+必要なのは、既存Worker `choicelen-canary`を保持したまま、**既存accountと新tokenの対象・Workerアクセス権の対応をユーザーが確認すること**。tokenはチャットへ貼らない。現状のtokenで公開を反復せず停止する。復旧後の再開では、その時の実時刻を再取得して新metadata／artifact／gateから進める。
+
+今回追加のLLM／楽天／GSC API呼出0、追加LLM API費用$0。Cloudflareはこの新規workflowのserviceアクセス失敗1回、成功deploy0。Actions実課金はunknown、新しい有料planなし。
+
+private記録は上記retry folderのmetadata、release、before／post-attempt snapshots、validation、attempt／deploy receipt、GSC未実行理由、final manifest。旧private folder／旧失敗記録は上書きしない。Draft PR #26を維持し、この最新失敗を追記した。
